@@ -1,0 +1,41 @@
+spring:
+  application:
+    name: workflow
+
+server:
+  # Preserve direct socket IP; trusted-proxy parsing is performed only by HttpAuditFilter.
+  forward-headers-strategy: none
+  port: ${SERVER_PORT:8082}
+
+# API documentation is opt-in outside local development environments.
+springdoc:
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:false}
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:false}
+    path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha
+    display-request-duration: true
+    try-it-out-enabled: false
+
+# JSON access/audit logs: one event on entry and one on completion; no request bodies/secrets.
+logging:
+  structured:
+    format:
+      console: logstash
+      file: logstash
+  file:
+    name: ${APP_LOG_FILE:./logs/workflow.json.log}
+  logback:
+    rollingpolicy:
+      max-file-size: 20MB
+      max-history: 14
+      total-size-cap: 300MB
+  level:
+    com.example.videokyc: INFO
+
+app:
+  audit:
+    # Comma-separated socket IPs of trusted reverse proxies. Empty by default to prevent XFF spoofing.
+    trusted-proxies: ${AUDIT_TRUSTED_PROXIES:}

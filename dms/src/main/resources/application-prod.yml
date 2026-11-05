@@ -1,0 +1,8 @@
+# Production requires external DMS_DB_URL, DMS_DB_USERNAME and DMS_DB_PASSWORD.
+# Use a separate PostgreSQL role that only accesses the DMS schema.
+server:
+  error:
+    include-message: never
+    include-stacktrace: never
+
+# Never enable the H2 console or supply a default DMS_API_PASSWORD in production.

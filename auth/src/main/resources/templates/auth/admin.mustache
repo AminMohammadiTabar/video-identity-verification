@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>پنل ادمین | Video KYC</title><link rel="stylesheet" href="/css/app.css"></head>
+<body><main class="shell">
+  <div class="topbar">
+    <div class="brand"><span class="brand-icon">V</span><span>VIDEO KYC <small>ADMINISTRATION</small></span></div>
+    <form action="/logout" method="post"><input type="hidden" name="{{csrfParameter}}" value="{{csrfToken}}"><button class="button outline small" type="submit">خروج</button></form>
+  </div>
+  <section class="card"><p class="eyebrow">ROLE_ADMIN</p><h1>پنل ادمین</h1>
+    <p class="lead">خوش آمدید، <strong dir="ltr">{{email}}</strong>.</p>
+    <div class="notice">این صفحه در مرحله چهارم صرفاً برای بررسی Role-Based Authorization ساخته شده است. بررسی و تأیید ویدئوها در فاز بعد پیاده‌سازی می‌شود.</div>
+    <a href="/verification/upload" class="button outline">بازگشت به صفحه احراز هویت</a>
+  </section>
+</main></body></html>

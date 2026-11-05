@@ -1,0 +1,14 @@
+---
+name: add-rest-endpoint
+description: Add a new REST endpoint to mellat-provider-app - hand-written controller/DTOs, documented via springdoc annotations.
+---
+
+REST endpoints are hand-written, not generated. There is no `swagger/api.yml` and no `openapi-generator-maven-plugin` step - both were removed in favor of endpoints you can find and read directly in the source tree, with Swagger UI/`/v3/api-docs` documentation produced from annotations on that same code.
+
+To add a new endpoint:
+
+1. **Controller** - a plain `@RestController` under `web/rest/`, one per resource area (mirrors `CustomerResource.java`/`BaseDataResource.java`). Map it under `/api/...` - springdoc's own `jhipster.api-docs.default-include-pattern: /api/**` keys off that literal prefix (as does `SecurityConfiguration`'s matcher list, currently `permitAll()` for `/api/**` - see the `mellat-provider-remove-resource-server-auth-pending` memory note), so an endpoint mapped without it silently skips API-docs inclusion regardless. Document it with `@Tag` (class-level) and `@Operation`/`@ApiResponse` (per method) instead of an api.yml `paths:` entry. Reference `tech.jhipster.web.rest.errors.ProblemDetailWithCause` as the error-response schema - that is the real runtime type `ExceptionTranslator` returns, not a generated `ProblemDetail` model.
+2. **DTOs** - live under `service.api.dto` (kept there, not under `web`, so `service`/`client` can reference them without violating the `web`-may-only-be-accessed-by-`config` ArchUnit rule). Default to a `record` - every request/response shape so far is immutable data. Reach for a class with Lombok (`@Getter`/`@Setter`/`@EqualsAndHashCode`/`@NoArgsConstructor`/`@AllArgsConstructor`) only when something genuinely needs post-construction mutation. Put `@Schema(description = ...)` directly on the field/record component. If this platform's other bank-provider microservices (e.g. bmi-provider-service) already have an equivalent resource, prefer matching their wire naming/shape for ESB-style consistency (see `CustomerOnboardingRequest`/`CustomerInquiryResponse` for the pattern this led to) - explicit per-field `@JsonProperty` for the snake_case wire name, not a class-level naming-strategy annotation, which didn't reliably rename every multi-word record field for Bean Validation's constructor-binding path in this project's exact Spring Boot/Jackson combination. Skip `@JsonProperty` entirely only when the field name already matches the desired wire name (single-word fields, or when no cross-service convention applies).
+3. **Service** - business/orchestration logic behind the controller, same as today (`MellatCustomerService`, `MellatBaseDataService`).
+
+`OpenApiConfiguration.REST_PACKAGE` (`web.rest`) is what springdoc scans for the `/v3/api-docs` "openapi" group - a controller outside that package won't be documented regardless of its own annotations.

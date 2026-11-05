@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ثبت‌نام | Video KYC</title><link rel="stylesheet" href="/css/app.css">
+</head>
+<body><main class="shell narrow">
+  <a class="back" href="/">← صفحه نخست</a>
+  <div class="brand"><span class="brand-icon">V</span><span>VIDEO KYC <small>ACCOUNT REGISTRATION</small></span></div>
+  <section class="card">
+    <p class="eyebrow">CREATE ACCOUNT</p><h1>ثبت‌نام</h1>
+    <p class="lead">پس از ثبت‌نام می‌توانید به صفحه انتخاب ویدئو دسترسی داشته باشید.</p>
+    {{#registrationError}}<div role="alert" class="alert error">{{registrationError}}</div>{{/registrationError}}
+    <form action="/register" method="post" autocomplete="on">
+      <input type="hidden" name="{{csrfParameter}}" value="{{csrfToken}}">
+      <label for="email">ایمیل</label>
+      <input id="email" type="email" name="email" value="{{email}}" autocomplete="email" required maxlength="320">
+      <label for="password">رمز عبور</label>
+      <input id="password" type="password" name="password" autocomplete="new-password" minlength="12" maxlength="72" required>
+      <p class="hint">حداقل ۱۲ کاراکتر؛ برای امنیت رمز عبور، بیشتر از ۷۲ بایت UTF-8 نباشد.</p>
+      <button class="button primary wide" type="submit">ایجاد حساب</button>
+    </form>
+    <p class="footnote">قبلاً ثبت‌نام کرده‌اید؟ <a href="/login">وارد شوید</a>.</p>
+  </section>
+</main></body></html>

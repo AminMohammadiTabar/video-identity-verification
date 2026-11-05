@@ -1,0 +1,4 @@
+# Unit tests have no database requirements. Integration tests (opt-in) connect to PostgreSQL.
+logging:
+  level:
+    com.example.videokyc: INFO

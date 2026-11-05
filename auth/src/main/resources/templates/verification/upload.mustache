@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>احراز هویت ویدئویی | Video KYC</title><link rel="stylesheet" href="/css/app.css">
+</head>
+<body><main class="shell">
+  <div class="topbar">
+    <div class="brand"><span class="brand-icon">V</span><span>VIDEO KYC <small>VERIFICATION</small></span></div>
+    <form action="/logout" method="post">
+      <input type="hidden" name="{{csrfParameter}}" value="{{csrfToken}}">
+      <button type="submit" class="button outline small">خروج</button>
+    </form>
+  </div>
+  <section class="card">
+    <p class="eyebrow">IDENTITY VERIFICATION</p>
+    <h1>بارگذاری ویدئوی احراز هویت</h1>
+    <p class="lead">حساب شما با ایمیل <strong dir="ltr">{{email}}</strong> فعال است.</p>
+    <div class="notice"><strong>وضعیت فعلی:</strong> <code>{{verificationStatus}}</code></div>
+    <div class="upload-area">
+      <div class="upload-symbol">▣</div>
+      <label for="video">انتخاب فایل ویدئویی</label>
+      <input id="video" type="file" accept="video/mp4,video/webm,.mp4,.webm" aria-describedby="upload-note">
+      <p id="upload-note" class="hint">در فاز اول فقط رابط انتخاب فایل نمایش داده می‌شود. فایل انتخاب‌شده به سرور یا DMS ارسال نخواهد شد.</p>
+    </div>
+    <button type="button" class="button primary" disabled aria-disabled="true">ارسال ویدئو (فاز بعد)</button>
+    <p class="footnote">تا زمان اتصال AUTH به DMS هیچ درخواست احراز هویتی برای ادمین ایجاد نمی‌شود.</p>
+  </section>
+</main></body></html>

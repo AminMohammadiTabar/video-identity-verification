@@ -1,0 +1,11 @@
+# Production requires external AUTH_DB_URL, AUTH_DB_USERNAME and AUTH_DB_PASSWORD.
+# Use a separate PostgreSQL role that only accesses the AUTH schema.
+server:
+  error:
+    include-message: never
+    include-stacktrace: never
+
+  servlet:
+    session:
+      cookie:
+        secure: true

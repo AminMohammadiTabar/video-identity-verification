@@ -1,0 +1,882 @@
+{
+  "info": {
+    "_postman_id": "b6f4a1e0-4c2a-4a8e-9b0a-3a1f2e5c9d10",
+    "name": "Bank Mellat BaaS Sandbox (direct)",
+    "description": "Calls Bank Mellat's real \"digital-platform\" BaaS sandbox directly - NOT this service's own API (see the separate `mellat-provider-service` Postman collection under `postman/` for that). Useful for reproducing/isolating a bank-side issue without mellat-provider-service in the loop at all, and for confirming whether a problem is on Mellat's side before reporting it to their team.\n\nFlow: sign a client-assertion JWT (RFC 7523 private_key_jwt) in the Login request's pre-request script, log in to get a real Mellat-issued access token, then use that token against every base-data/account/card endpoint below.\n\nPostman's sandbox is a different engine from Insomnia's (postman-sandbox, not a plain Electron hidden window). The pre-request scripts below use the standard Web Crypto API (crypto.subtle). If your Postman version's sandbox lacks crypto.subtle/await support, don't fight it - run generate-client-assertion.sh (in this repo, same folder as this file) and paste its output directly into the client_assertion variable by hand before sending Login. That always works regardless of sandbox capabilities.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Login (auth/login)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "function base64UrlFromArrayBuffer(buffer) {",
+              "  const bytes = new Uint8Array(buffer);",
+              "  let binary = '';",
+              "  for (let i = 0; i < bytes.byteLength; i++) {",
+              "    binary += String.fromCharCode(bytes[i]);",
+              "  }",
+              "  return btoa(binary).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/, '');",
+              "}",
+              "",
+              "function base64UrlFromString(str) {",
+              "  return btoa(unescape(encodeURIComponent(str))).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/, '');",
+              "}",
+              "",
+              "function pemToArrayBuffer(pem) {",
+              "  const b64 = pem",
+              "    .replace('-----BEGIN PRIVATE KEY-----', '')",
+              "    .replace('-----END PRIVATE KEY-----', '')",
+              "    .replace(/\\s/g, '');",
+              "  const binary = atob(b64);",
+              "  const bytes = new Uint8Array(binary.length);",
+              "  for (let i = 0; i < binary.length; i++) {",
+              "    bytes[i] = binary.charCodeAt(i);",
+              "  }",
+              "  return bytes.buffer;",
+              "}",
+              "",
+              "function randomHex(byteLength) {",
+              "  const bytes = new Uint8Array(byteLength);",
+              "  crypto.getRandomValues(bytes);",
+              "  return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');",
+              "}",
+              "",
+              "const clientId = pm.variables.get('client_id');",
+              "const audience = pm.variables.get('audience');",
+              "const privateKeyPem = pm.variables.get('private_key');",
+              "",
+              "if (!privateKeyPem) {",
+              "  throw new Error('private_key collection variable is empty/undefined - check the collection\\'s Variables tab (not a Postman Environment) has a CURRENT value set, not just an INITIAL value.');",
+              "}",
+              "",
+              "const now = Math.floor(Date.now() / 1000);",
+              "const header = { alg: 'RS256', typ: 'JWT' };",
+              "const payload = {",
+              "  sub: clientId,",
+              "  iss: clientId,",
+              "  aud: audience,",
+              "  iat: now,",
+              "  exp: now + 300,",
+              "  jti: randomHex(16),",
+              "};",
+              "",
+              "const headerB64 = base64UrlFromString(JSON.stringify(header));",
+              "const payloadB64 = base64UrlFromString(JSON.stringify(payload));",
+              "const signingInput = `${headerB64}.${payloadB64}`;",
+              "",
+              "const keyBuffer = pemToArrayBuffer(privateKeyPem);",
+              "const cryptoKey = await crypto.subtle.importKey(",
+              "  'pkcs8',",
+              "  keyBuffer,",
+              "  { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },",
+              "  false,",
+              "  ['sign']",
+              ");",
+              "",
+              "const signatureBuffer = await crypto.subtle.sign(",
+              "  'RSASSA-PKCS1-v1_5',",
+              "  cryptoKey,",
+              "  new TextEncoder().encode(signingInput)",
+              ");",
+              "",
+              "const clientAssertion = `${signingInput}.${base64UrlFromArrayBuffer(signatureBuffer)}`;",
+              "pm.collectionVariables.set('client_assertion', clientAssertion);",
+              "",
+              "// If the lines above throw (sandbox has no crypto.subtle/await), comment this",
+              "// whole script out, run generate-client-assertion.sh yourself, and paste its",
+              "// output straight into the client_assertion collection variable instead",
+              "// (collection's ... menu -> Edit -> Variables tab -> CURRENT VALUE column)."
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "try {",
+              "  const body = pm.response.json();",
+              "  if (body && body.access_token) {",
+              "    pm.collectionVariables.set('access_token', body.access_token);",
+              "  }",
+              "} catch (e) {",
+              "  // Login failed (e.g. INVALID_AUDIENCE, or non-JSON body) - nothing to extract.",
+              "}",
+              "",
+              "pm.test('Login returned 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{client_assertion}}", "type": "string" }]
+        },
+        "url": {
+          "raw": "{{base_url}}/auth/login",
+          "host": ["{{base_url}}"],
+          "path": ["auth", "login"]
+        },
+        "description": "RFC 7523 private_key_jwt: the client_assertion signed in this request's pre-request script is sent as the Bearer token here. Returns a Mellat-issued access_token, captured into the access_token collection variable for every request below."
+      },
+      "response": []
+    },
+    {
+      "name": "2. Get Provinces",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{access_token}}", "type": "string" }]
+        },
+        "url": {
+          "raw": "{{base_url}}/digital-platform/api/baas/base-data/provinces",
+          "host": ["{{base_url}}"],
+          "path": ["digital-platform", "api", "baas", "base-data", "provinces"]
+        },
+        "description": "Section 5.5. Response's provinceId values feed the Get Cities by Province request below."
+      },
+      "response": []
+    },
+    {
+      "name": "3. Get Cities by Province",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{access_token}}", "type": "string" }]
+        },
+        "url": {
+          "raw": "{{base_url}}/digital-platform/api/baas/base-data/provinces/{{province_id}}/cities",
+          "host": ["{{base_url}}"],
+          "path": ["digital-platform", "api", "baas", "base-data", "provinces", "{{province_id}}", "cities"]
+        },
+        "description": "Section 5.6. province_id defaults to 10 (Ardabil) - change the collection variable to any provinceId returned by Get Provinces."
+      },
+      "response": []
+    },
+    {
+      "name": "4. Get Birth Cities (Central Bank list)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{access_token}}", "type": "string" }]
+        },
+        "url": {
+          "raw": "{{base_url}}/digital-platform/api/baas/base-data/cities",
+          "host": ["{{base_url}}"],
+          "path": ["digital-platform", "api", "baas", "base-data", "cities"]
+        },
+        "description": "Section 5.8 - the nationwide birth-city list, as opposed to a province's own cities (request 3)."
+      },
+      "response": []
+    },
+    {
+      "name": "5. Get Income Ranges",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{access_token}}", "type": "string" }]
+        },
+        "url": {
+          "raw": "{{base_url}}/digital-platform/api/baas/base-data/income-ranges",
+          "host": ["{{base_url}}"],
+          "path": ["digital-platform", "api", "baas", "base-data", "income-ranges"]
+        },
+        "description": "Section 5.7."
+      },
+      "response": []
+    },
+    {
+      "name": "6. Get Education Levels",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{access_token}}", "type": "string" }]
+        },
+        "url": {
+          "raw": "{{base_url}}/digital-platform/api/baas/base-data/education-levels",
+          "host": ["{{base_url}}"],
+          "path": ["digital-platform", "api", "baas", "base-data", "education-levels"]
+        },
+        "description": "Section 5.9."
+      },
+      "response": []
+    },
+    {
+      "name": "7. Get Branches",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{access_token}}", "type": "string" }]
+        },
+        "url": {
+          "raw": "{{base_url}}/digital-platform/api/baas/base-data/branches?provincecode={{province_code}}&citycode={{city_code}}",
+          "host": ["{{base_url}}"],
+          "path": ["digital-platform", "api", "baas", "base-data", "branches"],
+          "query": [
+            { "key": "provincecode", "value": "{{province_code}}" },
+            { "key": "citycode", "value": "{{city_code}}" }
+          ]
+        },
+        "description": "Section 5.10. province_code/city_code default to 17/10307 (a sample Tehran pair) - change the collection variables as needed."
+      },
+      "response": []
+    },
+    {
+      "name": "8. Open Account",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Signs the KYC payload itself (verbatim, no exp/iat/jti added) as a",
+              "// compact JWS - this is Mellat's `message` envelope shape (section 5.2),",
+              "// a different signing operation from the client-assertion JWT in",
+              "// request 1: same private key, but the payload IS the business object,",
+              "// used as-is as the JWS claims set.",
+              "function base64UrlFromArrayBuffer(buffer) {",
+              "  const bytes = new Uint8Array(buffer);",
+              "  let binary = '';",
+              "  for (let i = 0; i < bytes.byteLength; i++) {",
+              "    binary += String.fromCharCode(bytes[i]);",
+              "  }",
+              "  return btoa(binary).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/, '');",
+              "}",
+              "",
+              "function base64UrlFromString(str) {",
+              "  return btoa(unescape(encodeURIComponent(str))).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/, '');",
+              "}",
+              "",
+              "function pemToArrayBuffer(pem) {",
+              "  const b64 = pem",
+              "    .replace('-----BEGIN PRIVATE KEY-----', '')",
+              "    .replace('-----END PRIVATE KEY-----', '')",
+              "    .replace(/\\s/g, '');",
+              "  const binary = atob(b64);",
+              "  const bytes = new Uint8Array(binary.length);",
+              "  for (let i = 0; i < binary.length; i++) {",
+              "    bytes[i] = binary.charCodeAt(i);",
+              "  }",
+              "  return bytes.buffer;",
+              "}",
+              "",
+              "const privateKeyPem = pm.variables.get('private_key');",
+              "const kycPayload = JSON.parse(pm.variables.get('open_account_sample_kyc'));",
+              "",
+              "const header = { alg: 'RS256', typ: 'JWT' };",
+              "const headerB64 = base64UrlFromString(JSON.stringify(header));",
+              "const payloadB64 = base64UrlFromString(JSON.stringify(kycPayload));",
+              "const signingInput = `${headerB64}.${payloadB64}`;",
+              "",
+              "const keyBuffer = pemToArrayBuffer(privateKeyPem);",
+              "const cryptoKey = await crypto.subtle.importKey(",
+              "  'pkcs8',",
+              "  keyBuffer,",
+              "  { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },",
+              "  false,",
+              "  ['sign']",
+              ");",
+              "",
+              "const signatureBuffer = await crypto.subtle.sign(",
+              "  'RSASSA-PKCS1-v1_5',",
+              "  cryptoKey,",
+              "  new TextEncoder().encode(signingInput)",
+              ");",
+              "",
+              "const signedMessage = `${signingInput}.${base64UrlFromArrayBuffer(signatureBuffer)}`;",
+              "pm.collectionVariables.set('open_account_message', signedMessage);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "try {",
+              "  const body = pm.response.json();",
+              "  if (body && body.refId) {",
+              "    pm.collectionVariables.set('ref_id', body.refId);",
+              "  }",
+              "} catch (e) {",
+              "  // no refId to capture on a failed submission",
+              "}",
+              "",
+              "pm.test('Open Account returned 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{access_token}}", "type": "string" }]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"{{open_account_message}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/digital-platform/api/baas/account-requests/open-accounts",
+          "host": ["{{base_url}}"],
+          "path": ["digital-platform", "api", "baas", "account-requests", "open-accounts"]
+        },
+        "description": "Section 5.2. The KYC payload (open_account_sample_kyc collection variable, editable JSON) is signed into a compact JWS by this request's pre-request script and sent as the `message` field. Response's refId is captured into the ref_id collection variable for request 9 below."
+      },
+      "response": []
+    },
+    {
+      "name": "9. Track Open Account Status",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{access_token}}", "type": "string" }]
+        },
+        "url": {
+          "raw": "{{base_url}}/digital-platform/api/baas/account-requests/open-accounts/{{ref_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["digital-platform", "api", "baas", "account-requests", "open-accounts", "{{ref_id}}"]
+        },
+        "description": "Section 5.3. ref_id is auto-captured from request 8's response."
+      },
+      "response": []
+    },
+    {
+      "name": "10. Get Card Groups",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{access_token}}", "type": "string" }]
+        },
+        "url": {
+          "raw": "{{base_url}}/digital-platform/api/baas/card-requests/card-groups",
+          "host": ["{{base_url}}"],
+          "path": ["digital-platform", "api", "baas", "card-requests", "card-groups"]
+        },
+        "description": "Section 5.4. groupId values feed the card_group field of requests 11/12 below."
+      },
+      "response": []
+    },
+    {
+      "name": "11. Issue Card",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Same signing approach as request 8 (Open Account): the payload IS",
+              "// the JWS claims set, verbatim, no exp/iat/jti added. requestId/timestamp",
+              "// are freshly generated each run - Mellat uses requestId for duplicate",
+              "// detection (section 5.11), so replaying a fixed value would get",
+              "// rejected on a second run.",
+              "function base64UrlFromArrayBuffer(buffer) {",
+              "  const bytes = new Uint8Array(buffer);",
+              "  let binary = '';",
+              "  for (let i = 0; i < bytes.byteLength; i++) {",
+              "    binary += String.fromCharCode(bytes[i]);",
+              "  }",
+              "  return btoa(binary).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/, '');",
+              "}",
+              "",
+              "function base64UrlFromString(str) {",
+              "  return btoa(unescape(encodeURIComponent(str))).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/, '');",
+              "}",
+              "",
+              "function pemToArrayBuffer(pem) {",
+              "  const b64 = pem",
+              "    .replace('-----BEGIN PRIVATE KEY-----', '')",
+              "    .replace('-----END PRIVATE KEY-----', '')",
+              "    .replace(/\\s/g, '');",
+              "  const binary = atob(b64);",
+              "  const bytes = new Uint8Array(binary.length);",
+              "  for (let i = 0; i < binary.length; i++) {",
+              "    bytes[i] = binary.charCodeAt(i);",
+              "  }",
+              "  return bytes.buffer;",
+              "}",
+              "",
+              "const privateKeyPem = pm.variables.get('private_key');",
+              "const payload = JSON.parse(pm.variables.get('issue_card_sample_payload'));",
+              "payload.requestId = 'postman-issue-' + Date.now();",
+              "payload.timestamp = new Date().toISOString();",
+              "",
+              "const header = { alg: 'RS256', typ: 'JWT' };",
+              "const headerB64 = base64UrlFromString(JSON.stringify(header));",
+              "const payloadB64 = base64UrlFromString(JSON.stringify(payload));",
+              "const signingInput = `${headerB64}.${payloadB64}`;",
+              "",
+              "const keyBuffer = pemToArrayBuffer(privateKeyPem);",
+              "const cryptoKey = await crypto.subtle.importKey(",
+              "  'pkcs8',",
+              "  keyBuffer,",
+              "  { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },",
+              "  false,",
+              "  ['sign']",
+              ");",
+              "",
+              "const signatureBuffer = await crypto.subtle.sign(",
+              "  'RSASSA-PKCS1-v1_5',",
+              "  cryptoKey,",
+              "  new TextEncoder().encode(signingInput)",
+              ");",
+              "",
+              "const signedMessage = `${signingInput}.${base64UrlFromArrayBuffer(signatureBuffer)}`;",
+              "pm.collectionVariables.set('issue_card_message', signedMessage);",
+              "pm.collectionVariables.set('track_card_request_id', payload.requestId);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Issue Card returned 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{access_token}}", "type": "string" }]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"{{issue_card_message}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/digital-platform/api/baas/card-requests/issue-cards/new",
+          "host": ["{{base_url}}"],
+          "path": ["digital-platform", "api", "baas", "card-requests", "issue-cards", "new"]
+        },
+        "description": "Section 5.11. issue_card_sample_payload (editable JSON collection variable) is signed into a compact JWS by this request's pre-request script, with a fresh requestId/timestamp each run."
+      },
+      "response": []
+    },
+    {
+      "name": "12. Reissue Card",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Same approach as request 11, but for the replacement/duplicate",
+              "// (المثنی) card endpoint (section 5.12) - cardNumber instead of",
+              "// accountNumber.",
+              "function base64UrlFromArrayBuffer(buffer) {",
+              "  const bytes = new Uint8Array(buffer);",
+              "  let binary = '';",
+              "  for (let i = 0; i < bytes.byteLength; i++) {",
+              "    binary += String.fromCharCode(bytes[i]);",
+              "  }",
+              "  return btoa(binary).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/, '');",
+              "}",
+              "",
+              "function base64UrlFromString(str) {",
+              "  return btoa(unescape(encodeURIComponent(str))).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/, '');",
+              "}",
+              "",
+              "function pemToArrayBuffer(pem) {",
+              "  const b64 = pem",
+              "    .replace('-----BEGIN PRIVATE KEY-----', '')",
+              "    .replace('-----END PRIVATE KEY-----', '')",
+              "    .replace(/\\s/g, '');",
+              "  const binary = atob(b64);",
+              "  const bytes = new Uint8Array(binary.length);",
+              "  for (let i = 0; i < binary.length; i++) {",
+              "    bytes[i] = binary.charCodeAt(i);",
+              "  }",
+              "  return bytes.buffer;",
+              "}",
+              "",
+              "const privateKeyPem = pm.variables.get('private_key');",
+              "const payload = JSON.parse(pm.variables.get('reissue_card_sample_payload'));",
+              "payload.requestId = 'postman-reissue-' + Date.now();",
+              "payload.timestamp = new Date().toISOString();",
+              "",
+              "const header = { alg: 'RS256', typ: 'JWT' };",
+              "const headerB64 = base64UrlFromString(JSON.stringify(header));",
+              "const payloadB64 = base64UrlFromString(JSON.stringify(payload));",
+              "const signingInput = `${headerB64}.${payloadB64}`;",
+              "",
+              "const keyBuffer = pemToArrayBuffer(privateKeyPem);",
+              "const cryptoKey = await crypto.subtle.importKey(",
+              "  'pkcs8',",
+              "  keyBuffer,",
+              "  { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },",
+              "  false,",
+              "  ['sign']",
+              ");",
+              "",
+              "const signatureBuffer = await crypto.subtle.sign(",
+              "  'RSASSA-PKCS1-v1_5',",
+              "  cryptoKey,",
+              "  new TextEncoder().encode(signingInput)",
+              ");",
+              "",
+              "const signedMessage = `${signingInput}.${base64UrlFromArrayBuffer(signatureBuffer)}`;",
+              "pm.collectionVariables.set('reissue_card_message', signedMessage);",
+              "pm.collectionVariables.set('track_card_request_id', payload.requestId);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Reissue Card returned 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{access_token}}", "type": "string" }]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"{{reissue_card_message}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/digital-platform/api/baas/card-requests/issue-cards/replace",
+          "host": ["{{base_url}}"],
+          "path": ["digital-platform", "api", "baas", "card-requests", "issue-cards", "replace"]
+        },
+        "description": "Section 5.12. reissue_card_sample_payload (editable JSON collection variable) is signed into a compact JWS by this request's pre-request script, with a fresh requestId/timestamp each run."
+      },
+      "response": []
+    },
+    {
+      "name": "13. Track Card Issuance",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{access_token}}", "type": "string" }]
+        },
+        "url": {
+          "raw": "{{base_url}}/digital-platform/api/baas/card-requests/issue-cards/{{track_card_request_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["digital-platform", "api", "baas", "card-requests", "issue-cards", "{{track_card_request_id}}"]
+        },
+        "description": "Section 5.14. track_card_request_id is auto-captured from whichever of request 11 (Issue Card) or request 12 (Reissue Card) ran most recently."
+      },
+      "response": []
+    },
+    {
+      "name": "14. Set PIN",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Same approach as request 11/12, for the set-PIN endpoint (section 5.13).",
+              "function base64UrlFromArrayBuffer(buffer) {",
+              "  const bytes = new Uint8Array(buffer);",
+              "  let binary = '';",
+              "  for (let i = 0; i < bytes.byteLength; i++) {",
+              "    binary += String.fromCharCode(bytes[i]);",
+              "  }",
+              "  return btoa(binary).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/, '');",
+              "}",
+              "",
+              "function base64UrlFromString(str) {",
+              "  return btoa(unescape(encodeURIComponent(str))).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/, '');",
+              "}",
+              "",
+              "function pemToArrayBuffer(pem) {",
+              "  const b64 = pem",
+              "    .replace('-----BEGIN PRIVATE KEY-----', '')",
+              "    .replace('-----END PRIVATE KEY-----', '')",
+              "    .replace(/\\s/g, '');",
+              "  const binary = atob(b64);",
+              "  const bytes = new Uint8Array(binary.length);",
+              "  for (let i = 0; i < binary.length; i++) {",
+              "    bytes[i] = binary.charCodeAt(i);",
+              "  }",
+              "  return bytes.buffer;",
+              "}",
+              "",
+              "const privateKeyPem = pm.variables.get('private_key');",
+              "const payload = JSON.parse(pm.variables.get('set_pin_sample_payload'));",
+              "payload.requestId = 'postman-set-pin-' + Date.now();",
+              "payload.timestamp = new Date().toISOString();",
+              "",
+              "const header = { alg: 'RS256', typ: 'JWT' };",
+              "const headerB64 = base64UrlFromString(JSON.stringify(header));",
+              "const payloadB64 = base64UrlFromString(JSON.stringify(payload));",
+              "const signingInput = `${headerB64}.${payloadB64}`;",
+              "",
+              "const keyBuffer = pemToArrayBuffer(privateKeyPem);",
+              "const cryptoKey = await crypto.subtle.importKey(",
+              "  'pkcs8',",
+              "  keyBuffer,",
+              "  { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },",
+              "  false,",
+              "  ['sign']",
+              ");",
+              "",
+              "const signatureBuffer = await crypto.subtle.sign(",
+              "  'RSASSA-PKCS1-v1_5',",
+              "  cryptoKey,",
+              "  new TextEncoder().encode(signingInput)",
+              ");",
+              "",
+              "const signedMessage = `${signingInput}.${base64UrlFromArrayBuffer(signatureBuffer)}`;",
+              "pm.collectionVariables.set('set_pin_message', signedMessage);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Set PIN returned 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{access_token}}", "type": "string" }]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"{{set_pin_message}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/digital-platform/api/baas/card-requests/set-pin",
+          "host": ["{{base_url}}"],
+          "path": ["digital-platform", "api", "baas", "card-requests", "set-pin"]
+        },
+        "description": "Section 5.13. set_pin_sample_payload (editable JSON collection variable) is signed into a compact JWS by this request's pre-request script, with a fresh requestId/timestamp each run."
+      },
+      "response": []
+    },
+    {
+      "name": "15. Activate Card",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Same approach as request 11/12/14, for the activation endpoint",
+              "// (section 5.15). Deactivation/cancellation (sections 5.16/5.17) share",
+              "// this exact payload shape - just change the URL below to reuse this",
+              "// script for those too.",
+              "function base64UrlFromArrayBuffer(buffer) {",
+              "  const bytes = new Uint8Array(buffer);",
+              "  let binary = '';",
+              "  for (let i = 0; i < bytes.byteLength; i++) {",
+              "    binary += String.fromCharCode(bytes[i]);",
+              "  }",
+              "  return btoa(binary).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/, '');",
+              "}",
+              "",
+              "function base64UrlFromString(str) {",
+              "  return btoa(unescape(encodeURIComponent(str))).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/, '');",
+              "}",
+              "",
+              "function pemToArrayBuffer(pem) {",
+              "  const b64 = pem",
+              "    .replace('-----BEGIN PRIVATE KEY-----', '')",
+              "    .replace('-----END PRIVATE KEY-----', '')",
+              "    .replace(/\\s/g, '');",
+              "  const binary = atob(b64);",
+              "  const bytes = new Uint8Array(binary.length);",
+              "  for (let i = 0; i < binary.length; i++) {",
+              "    bytes[i] = binary.charCodeAt(i);",
+              "  }",
+              "  return bytes.buffer;",
+              "}",
+              "",
+              "const privateKeyPem = pm.variables.get('private_key');",
+              "const payload = JSON.parse(pm.variables.get('card_status_change_sample_payload'));",
+              "payload.requestId = 'postman-status-change-' + Date.now();",
+              "payload.timestamp = new Date().toISOString();",
+              "",
+              "const header = { alg: 'RS256', typ: 'JWT' };",
+              "const headerB64 = base64UrlFromString(JSON.stringify(header));",
+              "const payloadB64 = base64UrlFromString(JSON.stringify(payload));",
+              "const signingInput = `${headerB64}.${payloadB64}`;",
+              "",
+              "const keyBuffer = pemToArrayBuffer(privateKeyPem);",
+              "const cryptoKey = await crypto.subtle.importKey(",
+              "  'pkcs8',",
+              "  keyBuffer,",
+              "  { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },",
+              "  false,",
+              "  ['sign']",
+              ");",
+              "",
+              "const signatureBuffer = await crypto.subtle.sign(",
+              "  'RSASSA-PKCS1-v1_5',",
+              "  cryptoKey,",
+              "  new TextEncoder().encode(signingInput)",
+              ");",
+              "",
+              "const signedMessage = `${signingInput}.${base64UrlFromArrayBuffer(signatureBuffer)}`;",
+              "pm.collectionVariables.set('card_status_change_message', signedMessage);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Activate Card returned 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{access_token}}", "type": "string" }]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"{{card_status_change_message}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/digital-platform/api/baas/card-requests/activation",
+          "host": ["{{base_url}}"],
+          "path": ["digital-platform", "api", "baas", "card-requests", "activation"]
+        },
+        "description": "Section 5.15. card_status_change_sample_payload (editable JSON collection variable) is signed into a compact JWS by this request's pre-request script, with a fresh requestId/timestamp each run. Duplicate this request and change the URL's last segment to deactivation/cancellation to exercise sections 5.16/5.17 - same payload shape."
+      },
+      "response": []
+    },
+    {
+      "name": "16. List Cards",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{access_token}}", "type": "string" }]
+        },
+        "url": {
+          "raw": "{{base_url}}/digital-platform/api/baas/card-requests/cards?page=1&limit=10",
+          "host": ["{{base_url}}"],
+          "path": ["digital-platform", "api", "baas", "card-requests", "cards"],
+          "query": [
+            { "key": "page", "value": "1" },
+            { "key": "limit", "value": "10" },
+            { "key": "status", "value": "ACTIVE", "disabled": true },
+            { "key": "accountNumber", "value": "", "disabled": true },
+            { "key": "nationalCode", "value": "", "disabled": true },
+            { "key": "fromDate", "value": "2025-11-20", "disabled": true },
+            { "key": "toDate", "value": "2025-11-21", "disabled": true }
+          ]
+        },
+        "description": "Section 5.18. Every query parameter is optional (disabled filters shown above as examples)."
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://stake.atlasdtco.com", "type": "string" },
+    { "key": "client_id", "value": "mofid-test", "type": "string" },
+    { "key": "audience", "value": "http://192.168.10.53:30888/realms/baas-realm", "type": "string" },
+    {
+      "key": "private_key",
+      "value": "-----BEGIN PRIVATE KEY-----\nMIIEugIBADANBgkqhkiG9w0BAQEFAASCBKQwggSgAgEAAoIBAQCJhLwfqgFLHYRM\nhPa9AoYy0+CbLaM5RkgWaa06MLJNNKIVNm5sgVvBeX5WWVWCo8BuwD2xrfjhGcxn\ngSm4ivMt1yT94cU8mPUkyIMe2wU2KTUBC1a8n7K5A1yDXCfu6DN+/xC+fwfzEKnz\nJshjanjnN3SNWieJKtt/S4tBFFWxdfKqCF37IZ5SUeEHGQar/G0pD/jyYp+JgqZc\nTLFkaKGiHPGG2Hz4X6mFJOlr9qs4621fDWhkgCK9ZTz8falQyhqMtQaAmLYyeUZ/\n3Cc9QqpqJ4kLVLSIVh1I6IlqrHyTEWtF4rRzk7hEte9yNaHgxaTWK4pMvJQ4+3UM\nuDsnbHEfAgMBAAECggEAHvbMtyJ75RJx2hrsRbW+Ss6LWdWGVZyeGbHUx+/0Dc9G\nmZkmdvcPlnpJOJ8n0mEVsLpHiezex6yb6khagQuEYvN5CFNgKltUg2JEp9twCnhv\nz1rivlkFEISRvaAv+6q8AaHj/siynQfJBI9ceoocTA+gBj3g/hEw2DJF2jL+cpUE\nM3K2gpq6XycKtjVN3i651Rw8Bl+X+0YigNvfyWyKhrMrhJ8EjaAtv/98CxJTXSd4\nylLyL99kY/7ZwB2jLT81h5gxyqzWIIgO8QYwQpw7LjsaQnBHCxPFfxG5/QpmjubO\n5pOzBCBtKIEQznL+1g6By0amunXZVGpL/D54h5/zeQKBgQDBsoTST3BseeHzq0Dz\nysMn15IsSfBJSbHFhJrD8Cas4nJDdc8DcB7uznoa/csambMi4b0JMkE61/8CgSJS\nA20h85NlZrrpxC6R/SWaTpnhXA/7LxKrsPK+46WJxvFPYIYMD4pfIwZ3SvYgIrQG\nhJv2JBAaP8j97FNjdTPsxAoa6QKBgQC1wFJfYjfRXXKyU65vwQp/4VwN/5o0rsGW\n8ph+EHS3zwQ8mFO2tV8pEBxkwJXikSLMIwVMBVjUCv0nfqeo5KjZAqX/qzeAVbky\nY2oeIdqw/CYiswU6ppulMllrlawbnBXFdNcsdCs2tOPYcbY8k6U2pju0l3wjnS9g\n33GOf0WWxwKBgBagrDOFZDTH6EV29BeG0FWPMVxLJu7o1QOmAg5xt5LqwT5wPMbC\nClsLc+hDTb7Fxc+FX3f7jvM42GmKfF/oVo9ozQdDgQJeELKtR/9Gv2M8RgGp9hxo\nh3MVVPlLbFVBiWdPSXLjvJWjBC2s4CsCwtV2UQs/+FLxkKxFvNMj86pBAoGAeIJi\nm7gGBp4NdMwjdxnqGkyUuvtlhdTxq2KDVeMXYOC0kHD34Md1p0Z1bSB8wVM2XWBD\nHNrWwRHgNRW3mTaz9d/ZrSIblM5CE3TzYbNUy9EEgDFvICpkPS6bN8hv64acsOX9\n3g3QsV9TS6pqCNRk0U17fQyMVRjd1z+Qjck5nPUCf1An875wM5MpWaJz9cPDQX51\nQ8r5pRKK8NsMXoqkIUCkFn+FDIjOYn8MSEtqq+cjC1UEI7dIMHhQ1uw47DZdivqt\nVC+bZoC0L4kXOkEYyocxVk1neVZ5Ge8fwW5haPyts0rSqvT22jwHZwHM73cQUS3L\n/k/2B+Q+fgCatWT7MoI=\n-----END PRIVATE KEY-----\n",
+      "type": "string"
+    },
+    { "key": "client_assertion", "value": "", "type": "string" },
+    { "key": "access_token", "value": "", "type": "string" },
+    { "key": "province_id", "value": "10", "type": "string" },
+    { "key": "province_code", "value": "17", "type": "string" },
+    { "key": "city_code", "value": "10307", "type": "string" },
+    {
+      "key": "open_account_sample_kyc",
+      "value": "{\"firstName\":\"Ali\",\"lastName\":\"Rostami\",\"fatherName\":\"Behzad\",\"nationalCode\":\"0063923258\",\"nationalCardSeries\":\"P1\",\"nationalCardSerial\":\"12863314\",\"birthCertNumber\":\"40856\",\"birthCertIssueDate\":\"1363/07/21\",\"birthIssueCity\":\"228\",\"birthDate\":\"1363/07/12\",\"birthCityCode\":\"228\",\"signatureImage\":\"data:image/png;base64,abc\",\"telephone\":\"02122084254\",\"mobilePhone\":\"09124442255\",\"addressProvinceCode\":\"17\",\"addressCityCode\":\"10307\",\"address\":\"some address, at least 10 chars\",\"postalCode\":\"1994448884\",\"education\":\"4\",\"occupation\":\"کارمند\",\"annualRevenueForecast\":\"10\",\"annualTurnoverForecast\":\"10\",\"callBackUrl\":\"http://example.com/callback\",\"callBackState\":\"state-123\"}",
+      "type": "string"
+    },
+    { "key": "open_account_message", "value": "", "type": "string" },
+    { "key": "ref_id", "value": "", "type": "string" },
+    {
+      "key": "issue_card_sample_payload",
+      "value": "{\"requestId\":\"\",\"issueType\":\"33\",\"accountNumber\":\"7564418704\",\"cardGroup\":\"104\",\"timestamp\":\"\",\"branch\":0,\"cityCode\":0,\"postalCode\":0,\"address\":\"\"}",
+      "type": "string"
+    },
+    { "key": "issue_card_message", "value": "", "type": "string" },
+    {
+      "key": "reissue_card_sample_payload",
+      "value": "{\"requestId\":\"\",\"issueType\":\"0\",\"cardNumber\":\"6037991234567890\",\"cardGroup\":\"104\",\"timestamp\":\"\",\"branch\":61747,\"cityCode\":0,\"postalCode\":0,\"address\":\"\"}",
+      "type": "string"
+    },
+    { "key": "reissue_card_message", "value": "", "type": "string" },
+    { "key": "track_card_request_id", "value": "", "type": "string" },
+    {
+      "key": "set_pin_sample_payload",
+      "value": "{\"requestId\":\"\",\"cardNumber\":\"6037991234567890\",\"callbackUrl\":\"http://example.com/callback\",\"timestamp\":\"\"}",
+      "type": "string"
+    },
+    { "key": "set_pin_message", "value": "", "type": "string" },
+    {
+      "key": "card_status_change_sample_payload",
+      "value": "{\"cardNumber\":\"6037991234567890\",\"timestamp\":\"\",\"requestId\":\"\"}",
+      "type": "string"
+    },
+    { "key": "card_status_change_message", "value": "", "type": "string" }
+  ]
+}

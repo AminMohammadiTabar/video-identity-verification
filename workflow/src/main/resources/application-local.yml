@@ -1,0 +1,13 @@
+logging:
+  level:
+    com.example.videokyc.workflow: DEBUG
+
+springdoc:
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:true}
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:true}
+
+# Development endpoints (including Swagger) should not be reachable from the public network.
+server:
+  address: 127.0.0.1
