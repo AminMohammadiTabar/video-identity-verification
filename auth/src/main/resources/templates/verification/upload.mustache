@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>احراز هویت ویدئویی | Video KYC</title><link rel="stylesheet" href="/css/app.css">
+</head>
+<body><main class="shell">
+  <div class="topbar">
+    <div class="brand"><span class="brand-icon">V</span><span>VIDEO KYC <small>VERIFICATION</small></span></div>
+    <form action="/logout" method="post"><input type="hidden" name="{{csrfParameter}}" value="{{csrfToken}}">
+      <button type="submit" class="button outline small">خروج</button></form>
+  </div>
+  <section class="card">
+    <p class="eyebrow">IDENTITY VERIFICATION</p><h1>احراز هویت ویدئویی</h1>
+    <p class="lead">حساب کاربری <strong dir="ltr">{{email}}</strong></p>
+    <div class="notice"><strong>وضعیت آخرین تلاش:</strong> <code>{{verificationStatus}}</code>
+      {{#hasLatestAttempt}}<span> — تلاش شماره {{attemptNumber}}</span>{{/hasLatestAttempt}}</div>
+    {{#submitted}}<div class="alert success">ویدئو ثبت شد. لطفاً منتظر بررسی ادمین باشید.</div>{{/submitted}}
+    {{#uploadError}}<div class="alert error">{{uploadError}}</div>{{/uploadError}}
+    {{#waiting}}<div class="notice">ویدئوی شما ثبت شده و در صف بررسی ادمین است.</div>{{/waiting}}
+    {{#approved}}<div class="alert success">هویت شما تأیید شده است. نیازی به ارسال ویدئوی دیگری نیست.</div>{{/approved}}
+    {{#rejected}}<div class="alert error">احراز هویت در تلاش قبلی تأیید نشد. می‌توانید ویدئوی جدیدی ارسال کنید.</div>
+      {{#reviewReason}}<div class="notice"><strong>علت اعلام‌شده:</strong> {{reviewReason}}</div>{{/reviewReason}}{{/rejected}}
+    {{#allowUpload}}
+      <form action="/verification/upload" method="post" enctype="multipart/form-data" id="upload-form">
+        <input type="hidden" name="{{csrfParameter}}" value="{{csrfToken}}">
+        <div class="upload-area">
+          <label for="video">ویدئوی MP4 یا WebM انتخاب کنید (حداکثر ۵۰ مگابایت)</label>
+          <input id="video" name="video" type="file" accept="video/mp4,video/webm,.mp4,.webm" required>
+          <p class="hint">فایل به سرویس AUTH ارسال و از سمت سرور در DMS ذخیره می‌شود.</p>
+          <div class="actions"><button class="button outline" id="record" type="button">شروع ضبط دوربین</button>
+          <button class="button outline" id="stop" type="button" disabled>توقف ضبط</button></div>
+          <video id="preview" controls playsinline style="width:100%;max-height:320px;display:none;margin-top:12px"></video>
+          <p id="camera-message" class="hint" role="status"></p>
+        </div>
+        <button type="submit" class="button primary">ارسال ویدئو برای بررسی</button>
+      </form>
+      <noscript><p class="alert error">برای ارسال ویدئو، جاوااسکریپت مرورگر باید فعال باشد.</p></noscript>
+      <script src="/js/video-recording.js" defer></script>
+    {{/allowUpload}}
+    {{#hasAttempts}}
+    <section class="notice" style="margin-top:18px">
+      <h2>تاریخچه تلاش‌ها</h2>
+      {{#attempts}}
+          <div style="border-top:1px solid #ddd;padding:10px 0">
+            <strong>تلاش {{attemptNumber}}</strong> — <code>{{status}}</code><br>
+            <small>ثبت: {{submittedAt}} | بررسی: {{reviewedAt}}</small><br>
+            <small>علت رد: {{reviewReason}}</small>
+          </div>
+      {{/attempts}}
+    </section>
+    {{/hasAttempts}}
+    <p class="footnote">نتیجه بررسی در سامانه ثبت می‌شود و در صورت فعال بودن سرویس ایمیل، به نشانی ثبت‌شده نیز اطلاع‌رسانی خواهد شد.</p>
+  </section>
+</main></body></html>

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>بررسی احراز هویت | Video KYC</title><link rel="stylesheet" href="/css/app.css"></head>
+<body><main class="shell">
+  <div class="topbar"><div class="brand"><span class="brand-icon">V</span><span>VIDEO KYC <small>ADMINISTRATION</small></span></div>
+    <form action="/logout" method="post"><input type="hidden" name="{{csrfParameter}}" value="{{csrfToken}}">
+      <button class="button outline small" type="submit">خروج</button></form></div>
+  <section class="card"><p class="eyebrow">ADMIN REVIEW</p><h1>درخواست‌های در انتظار بررسی</h1>
+    {{#updated}}<div class="alert success">نتیجه بررسی با موفقیت ثبت شد.</div>{{/updated}}
+    {{#reviewError}}<div class="alert error">بررسی درخواست ممکن نبود؛ ممکن است قبلاً بررسی شده باشد یا اطلاعات نامعتبر باشد.</div>{{/reviewError}}
+    {{^requests}}<div class="notice">درخواست جدیدی برای بررسی وجود ندارد.</div>{{/requests}}
+    {{#requests}}
+      <article class="notice" style="margin-bottom:20px">
+        <div><strong>شناسه درخواست:</strong> <code>{{id}}</code></div>
+        <div><strong>شماره تلاش:</strong> {{attemptNumber}}</div>
+        <div><strong>کاربر:</strong> <span dir="ltr">{{userEmail}}</span></div>
+        <div><strong>تاریخ ثبت:</strong> <span dir="ltr">{{submittedAt}}</span></div>
+        <video src="/api/v1/auth/admin/verifications/{{id}}/video" controls playsinline preload="none" style="width:100%;max-height:360px;margin-top:10px"></video>
+        <form action="/admin/verifications/{{id}}/approve" method="post" style="margin:12px 0">
+          <input type="hidden" name="{{csrfParameter}}" value="{{csrfToken}}">
+          <button class="button primary" type="submit">تأیید هویت</button>
+        </form>
+        <form action="/admin/verifications/{{id}}/reject" method="post">
+          <input type="hidden" name="{{csrfParameter}}" value="{{csrfToken}}">
+          <label>دلیل رد درخواست <input name="reason" maxlength="500" required></label>
+          <button class="button outline" type="submit">رد درخواست</button>
+        </form>
+      </article>
+    {{/requests}}
+  </section>
+</main></body></html>

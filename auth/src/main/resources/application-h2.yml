@@ -1,0 +1,22 @@
+# Developer-only profile. Bind to loopback; do not expose H2 console on a public interface.
+spring:
+  datasource:
+    url: "jdbc:h2:file:./data/auth-db;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_ON_EXIT=FALSE"
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  flyway:
+    locations: classpath:db/migration-h2
+  h2:
+    console:
+      enabled: true
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+server:
+  address: 127.0.0.1
+
+springdoc:
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:true}
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:true}

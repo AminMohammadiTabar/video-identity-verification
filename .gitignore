@@ -1,0 +1,36 @@
+# Maven outputs
+**/target/
+*.class
+
+# Local IDE files
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+
+# Environment secrets and local overrides
+.env
+.env.*
+!.env.example
+**/application-local-private.yml
+**/application-*.secret.yml
+
+# Storage and logs
+storage/
+logs/
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Local H2 data files
+**/data/
+*.mv.db
+*.trace.db
+
+# Local operational/audit logs (may contain IP addresses)
+**/logs/
+*.json.log*

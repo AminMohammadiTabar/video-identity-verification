@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="سامانه احراز هویت ویدئویی">
+  <title>{{projectName}}</title>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <main class="shell">
+    <div class="brand"><span class="brand-icon">V</span><span>VIDEO KYC <small>AUTH SERVICE</small></span></div>
+    <section class="card hero">
+      <p class="eyebrow">PHASE 1 · AUTH</p>
+      <h1>سامانه احراز هویت ویدئویی</h1>
+      <p class="lead">ثبت‌نام و ورود امن کاربران، با آماده‌سازی مرحله بارگذاری ویدئو. اتصال به DMS در فاز بعدی انجام می‌شود.</p>
+      <div class="actions">
+        {{#guest}}
+          <a class="button primary" href="/register">ایجاد حساب</a>
+          <a class="button outline" href="/login">ورود</a>
+        {{/guest}}
+        {{#loggedIn}}
+          <a class="button primary" href="/verification/upload">صفحه احراز هویت</a>
+          <a class="button outline" href="/admin">پنل ادمین (در صورت داشتن دسترسی)</a>
+        {{/loggedIn}}
+      </div>
+      <p class="footnote">مستندات سرویس‌های REST در محیط توسعه از Swagger UI در دسترس هستند.</p>
+    </section>
+  </main>
+</body>
+</html>

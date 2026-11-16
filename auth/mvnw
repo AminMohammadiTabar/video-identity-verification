@@ -1,0 +1,47 @@
+#!/bin/sh
+# Minimal Maven bootstrapper for this repository; Maven distribution is SHA-256 pinned.
+set -eu
+PROJECT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+PROPERTIES="$PROJECT_DIR/.mvn/wrapper/maven-wrapper.properties"
+property() { sed -n "s/^$1=//p" "$PROPERTIES" | tail -n 1; }
+URL=$(property distributionUrl)
+EXPECTED=$(property distributionSha256Sum)
+case "$URL" in https://repo.maven.apache.org/*) ;; *) echo 'Unexpected Maven download URL' >&2; exit 1 ;; esac
+[ -n "$EXPECTED" ] || { echo 'Missing distribution SHA-256' >&2; exit 1; }
+DIST_ARCHIVE=${URL##*/}
+DIST_NAME=${DIST_ARCHIVE%-bin.zip}
+CACHE_HOME=${MVNW_CACHE_HOME:-"${HOME:-}/.m2/wrapper/dists"}
+[ -n "$CACHE_HOME" ] || { echo 'HOME or MVNW_CACHE_HOME must be set' >&2; exit 1; }
+DIST_HOME="$CACHE_HOME/$DIST_NAME"
+MAVEN_BIN="$DIST_HOME/bin/mvn"
+if [ ! -f "$MAVEN_BIN" ]; then
+    command -v unzip >/dev/null 2>&1 || { echo 'unzip is required' >&2; exit 1; }
+    mkdir -p "$CACHE_HOME"
+    TMP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/vik-mvn.XXXXXXXX")
+    trap 'rm -rf "$TMP_DIR"' EXIT HUP INT TERM
+    ARCHIVE="$TMP_DIR/$DIST_ARCHIVE"
+    if command -v curl >/dev/null 2>&1; then
+        curl --fail --location --silent --show-error "$URL" --output "$ARCHIVE"
+    elif command -v wget >/dev/null 2>&1; then
+        wget --quiet --output-document="$ARCHIVE" "$URL"
+    else
+        echo 'curl or wget is required' >&2; exit 1
+    fi
+    if command -v sha256sum >/dev/null 2>&1; then
+        ACTUAL=$(sha256sum "$ARCHIVE" | cut -d ' ' -f 1)
+    elif command -v shasum >/dev/null 2>&1; then
+        ACTUAL=$(shasum -a 256 "$ARCHIVE" | cut -d ' ' -f 1)
+    else
+        echo 'sha256sum or shasum is required' >&2; exit 1
+    fi
+    if [ "$ACTUAL" != "$EXPECTED" ]; then
+        echo 'Maven download checksum mismatch' >&2; exit 1
+    fi
+    unzip -q "$ARCHIVE" -d "$TMP_DIR"
+    [ -f "$TMP_DIR/$DIST_NAME/bin/mvn" ] || { echo 'Invalid Maven archive structure' >&2; exit 1; }
+    if [ ! -d "$DIST_HOME" ]; then
+        mv "$TMP_DIR/$DIST_NAME" "$DIST_HOME"
+    fi
+fi
+cd "$PROJECT_DIR"
+exec "$MAVEN_BIN" "$@"

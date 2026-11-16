@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ورود | Video KYC</title><link rel="stylesheet" href="/css/app.css">
+</head>
+<body><main class="shell narrow">
+  <a class="back" href="/">← صفحه نخست</a>
+  <div class="brand"><span class="brand-icon">V</span><span>VIDEO KYC <small>SECURE SIGN IN</small></span></div>
+  <section class="card">
+    <p class="eyebrow">AUTHENTICATION</p><h1>ورود به حساب</h1>
+    <p class="lead">از ایمیل و رمز عبور حساب خود استفاده کنید.</p>
+    {{#loginError}}<div role="alert" class="alert error">ایمیل یا رمز عبور صحیح نیست.</div>{{/loginError}}
+    {{#loggedOut}}<div role="status" class="alert success">با موفقیت خارج شدید.</div>{{/loggedOut}}
+    {{#registered}}<div role="status" class="alert success">ثبت‌نام با موفقیت انجام شد. حالا وارد شوید.</div>{{/registered}}
+    <form action="/login" method="post" autocomplete="on">
+      <input type="hidden" name="{{csrfParameter}}" value="{{csrfToken}}">
+      <label for="username">ایمیل</label>
+      <input id="username" type="email" name="username" autocomplete="username" required maxlength="320" autofocus>
+      <label for="password">رمز عبور</label>
+      <input id="password" type="password" name="password" autocomplete="current-password" required>
+      <button class="button primary wide" type="submit">ورود</button>
+    </form>
+    <p class="footnote">حساب ندارید؟ <a href="/register">ثبت‌نام کنید</a>.</p>
+  </section>
+</main></body></html>
