@@ -113,7 +113,24 @@ check((ROOT / 'dms/src/main/java/com/example/videokyc/dms/storage/LocalDiskStora
       'DMS: safe local disk storage implementation is present')
 check((ROOT / 'workflow/src/main/resources/db/migration/V1__create_audit_events.sql').is_file() and
       (ROOT / 'workflow/src/main/resources/db/migration-h2/V1__create_audit_events.sql').is_file(),
-      'WORKFLOW: isolated Audit persistence exists without workflow engine')
+      'WORKFLOW: isolated Audit persistence exists')
+
+# Phase 7: Generic Workflow Engine Domain Foundation
+check((ROOT / 'docs/phase-7/PHASE_7_ROADMAP.md').is_file() and
+      (ROOT / 'docs/phase-7/PHASE_7_STEP_1_DOMAIN_DESIGN.md').is_file(),
+      'WORKFLOW: Phase 7 roadmap and Step 1 domain specification present')
+
+wf_domain = ROOT / 'workflow/src/main/java/com/example/videokyc/workflow/domain'
+check((wf_domain / 'definition/WorkflowDefinition.java').is_file() and
+      (wf_domain / 'version/WorkflowVersion.java').is_file() and
+      (wf_domain / 'transition/guard/GuardParser.java').is_file() and
+      (wf_domain / 'transition/guard/GuardEvaluator.java').is_file(),
+      'WORKFLOW: domain entities and Guard DSL evaluator present')
+
+# Hexagonal architecture purity: domain layer must remain free of JPA annotations
+jpa_leaks = [p.name for p in wf_domain.rglob('*.java')
+             if 'jakarta.persistence' in p.read_text(encoding='utf-8')]
+check(not jpa_leaks, f'WORKFLOW: domain layer has zero JPA annotations ({len(jpa_leaks)} leaks found)')
 check((ROOT / 'compose.yml').read_text(encoding='utf-8').find('jaegertracing/all-in-one') >= 0,
       'Optional Jaeger backend is defined for local tracing')
 
