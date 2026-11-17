@@ -7,10 +7,11 @@ This file is intended for Antigravity and other repository-aware coding agents; 
 - They are siblings only to share an IDE window. Do not make them depend on one another, create a shared Maven parent, or introduce a shared runtime/JVM.
 - `auth`: Spring MVC, Mustache, Spring Security, registration/login, USER/ADMIN, operational video upload through a backend-only HTTP client to DMS, verification requests, and admin review decisions. The status enum remains local; no separate WORKFLOW engine.
 - `dms`: disk-backed API, file metadata, soft delete, physical purge. Store files as `SUBSYSTEM/YYYY/MM/DD/OWNER_ID/UUID.ext`. A pre-registration owner may be `SYSTEM-AUTH-REGISTER`.
-- `workflow`: Spring Boot scaffold with its own JPA/Flyway store only for local `workflow.audit_events`. Do not silently implement workflow engine, dynamic states, transitions or RabbitMQ.
-- Each service owns its own Postgres schema and Flyway migrations (`auth`, `dms`, `workflow`); H2 has separate local-only migrations. Redis/RabbitMQ remain future work.
+- `workflow`: Independent Generic Workflow Engine service per Phase 7 (`docs/phase-7/`). It owns workflow definitions, versions, states, transitions, Guard DSL AST, publication jobs, and transactional outbox events. It does **not** own business workflow instances, consumer attempt histories, or user data (those remain strictly in `auth` and `dms`). Consumers interact via read-only Redis snapshots; publication events are broadcast via RabbitMQ.
+- Each service owns its own Postgres schema and Flyway migrations (`auth`, `dms`, `workflow`); H2 has separate local-only migrations. Redis and RabbitMQ are configured specifically for Workflow publication and snapshot distribution in Phase 7.
 - AUTH verification is attempt-based: every resubmission after REJECTED creates a new `verification_requests` row; transient DMS failure retries the same attempt. APPROVED cannot be resubmitted.
-- Email decisions are written to AUTH's transactional `email_outbox`. SMTP delivery is opt-in (`EMAIL_NOTIFICATIONS_ENABLED=true`) and uses retry/backoff; no RabbitMQ is involved.
+- Email decisions are written to AUTH's transactional `email_outbox`. SMTP delivery is opt-in (`EMAIL_NOTIFICATIONS_ENABLED=true`) and uses retry/backoff; no RabbitMQ is involved in AUTH.
+- **Boilerplate & Lombok**: Lombok is enabled and configured in `workflow/` to reduce boilerplate (`@Getter`, `@Setter`, `@NoArgsConstructor`, `@ToString`) in JPA entities and DTOs. Core domain records and value objects preserve immutability and strict DDD invariant encapsulation.
 
 ## Security and API
 - Do not turn off CSRF for AUTH's session-backed form and registration API.

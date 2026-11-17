@@ -26,38 +26,37 @@ service.
   --------------------------------------------------------------------------
   Step              Work package      Status            Completion detail
   ----------------- ----------------- ----------------- --------------------
-  7.1               Domain Design     **Design          Domain boundaries,
-                                      complete**        entities, value
-                                                        objects, Guard DSL,
-                                                        Context Schema,
-                                                        versioning, and
-                                                        publication behavior
-                                                        approved.
+  7.1               Domain Design &   **Complete**      Domain boundaries,
+                    Implementation                      aggregates, value
+                                                        objects, versioning,
+                                                        Guard DSL AST,
+                                                        canonical JSON
+                                                        serializer, and unit
+                                                        tests implemented.
 
-  7.2               Database Design   **Design          ERD, tables,
-                                      complete**        relationships,
-                                                        constraints,
-                                                        indexes,
-                                                        publication/outbox
-                                                        persistence, and
-                                                        PostgreSQL/H2
-                                                        migration plan
-                                                        approved. SQL
-                                                        migrations have
-                                                        **not** yet been
-                                                        applied.
+  7.2               Database Design   **Complete**      ERD, tables,
+                    & Persistence                       constraints, indexes,
+                                                        Flyway V2-V4
+                                                        migrations applied,
+                                                        JPA entities (Lombok),
+                                                        repositories, and
+                                                        integration tests
+                                                        verified.
 
-  7.3               Domain &          Not started       Implement domain
-                    Application                         model, application
-                    Implementation                      use cases, ports,
-                                                        and persistence
-                                                        adapters.
+  7.3               Domain &          **In Progress**   Core domain models
+                    Application                         and persistence
+                    Implementation                      adapters/repositories
+                                                        implemented; use cases,
+                                                        ports, and mappers
+                                                        in progress.
 
-  7.4               Guard & Rule      Not started       Implement versioned
-                    Engine                              JSON DSL parsing,
-                                                        validation, and
-                                                        deterministic
-                                                        evaluation.
+  7.4               Guard & Rule      **In Progress**   Guard AST sealed
+                    Engine                              hierarchy, parser
+                                                        (safety limits), and
+                                                        deterministic evaluator
+                                                        implemented with unit
+                                                        tests; context schema
+                                                        integration in progress.
 
   7.5               Definition        Not started       Implement
                     Publication                         Publication Job
@@ -90,19 +89,13 @@ service.
                                                         consumer-side
                                                         runtime integration.
 
-  7.10              Testing & Quality Not started       Complete unit,
-                    Assurance                           integration,
-                                                        security,
-                                                        concurrency,
-                                                        recovery, and
-                                                        compatibility
-                                                        testing.
+  7.10              Testing & Quality In Progress       Unit tests (domain,
+                    Assurance                           guard DSL) and
+                                                        database integration
+                                                        tests active and passing.
   --------------------------------------------------------------------------
 
-**Status distinction:** Steps 7.1 and 7.2 are complete as
-design/specification work. Java classes, Flyway migrations, Redis
-integration, workers, and RabbitMQ publishing have not yet been
-implemented.
+**Status distinction:** Steps 7.1 and 7.2 are fully implemented and verified with tests. Steps 7.3 and 7.4 have their domain structures and persistence foundations in place with unit/integration tests; application use cases, mappers, Redis integration, and RabbitMQ publishing are actively in progress according to this roadmap.
 
 ## 3. Approved architecture
 

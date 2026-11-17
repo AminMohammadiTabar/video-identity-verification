@@ -115,10 +115,22 @@ check((ROOT / 'workflow/src/main/resources/db/migration/V1__create_audit_events.
       (ROOT / 'workflow/src/main/resources/db/migration-h2/V1__create_audit_events.sql').is_file(),
       'WORKFLOW: isolated Audit persistence exists')
 
-# Phase 7: Generic Workflow Engine Domain Foundation
+# Phase 7 Step 2: Database Schema & Migrations (PostgreSQL and H2 parity)
+for v in ('V2__create_workflow_definition_schema.sql',
+          'V3__create_workflow_publication_schema.sql',
+          'V4__create_workflow_outbox_schema.sql'):
+    check((ROOT / 'workflow/src/main/resources/db/migration' / v).is_file() and
+          (ROOT / 'workflow/src/main/resources/db/migration-h2' / v).is_file(),
+          f'WORKFLOW: {v.split("__")[0]} migration exists for PostgreSQL and H2')
+
+check((ROOT / 'workflow/src/test/java/com/example/videokyc/workflow/WorkflowDatabaseMigrationIntegrationTest.java').is_file(),
+      'WORKFLOW: database migration and constraint integration tests present')
+
+# Phase 7 Step 1: Generic Workflow Engine Domain Foundation
 check((ROOT / 'docs/phase-7/PHASE_7_ROADMAP.md').is_file() and
-      (ROOT / 'docs/phase-7/PHASE_7_STEP_1_DOMAIN_DESIGN.md').is_file(),
-      'WORKFLOW: Phase 7 roadmap and Step 1 domain specification present')
+      (ROOT / 'docs/phase-7/PHASE_7_STEP_1_DOMAIN_DESIGN.md').is_file() and
+      (ROOT / 'docs/phase-7/PHASE_7_STEP_2_DATABASE_DESIGN.md').is_file(),
+      'WORKFLOW: Phase 7 roadmap and design specifications present')
 
 wf_domain = ROOT / 'workflow/src/main/java/com/example/videokyc/workflow/domain'
 check((wf_domain / 'definition/WorkflowDefinition.java').is_file() and
