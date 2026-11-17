@@ -14,6 +14,16 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Administrative REST controller for reviewing pending video verifications.
+ * <p>
+ * Security invariants:
+ * <ul>
+ *   <li>Requires {@code ROLE_ADMIN} authority.</li>
+ *   <li>Protected by session cookies and CSRF validation on mutating actions.</li>
+ *   <li>Allows streaming user verification videos privately from DMS without local caching.</li>
+ * </ul>
+ */
 @RestController
 @RequestMapping("/api/v1/auth/admin/verifications")
 @SecurityRequirement(name = "sessionCookie")

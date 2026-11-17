@@ -13,7 +13,20 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
-/** Short transactions only. Never hold a DB lock across a remote call to DMS. */
+/**
+ * Transactional state machine service for verification requests.
+ * <p>
+ * Architectural invariants:
+ * <ul>
+ *   <li><b>Short Transactions:</b> Database locks are never held across remote HTTP calls to DMS.</li>
+ *   <li><b>Attempt History:</b> Every user submission after a rejection creates a new attempt row
+ *       with an incremented {@code attempt_number}. Prior attempts remain immutable for compliance.</li>
+ *   <li><b>Transient Failure Recovery:</b> An {@code UPLOAD_FAILED} attempt can be retried in-place
+ *       without consuming an extra attempt number.</li>
+ *   <li><b>Review Immutability:</b> Once decided (APPROVED or REJECTED), an attempt cannot be reviewed again (409 Conflict).</li>
+ *   <li><b>Transactional Outbox:</b> Review decisions atomically enqueue email notifications in {@code email_outbox}.</li>
+ * </ul>
+ */
 @Service
 public class VerificationStateService {
     private final UserRepository users;

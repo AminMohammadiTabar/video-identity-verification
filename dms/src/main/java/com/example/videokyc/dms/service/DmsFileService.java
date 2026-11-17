@@ -22,6 +22,21 @@ import java.util.Locale;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
+/**
+ * Core business service managing document and video files in DMS.
+ * <p>
+ * Key responsibilities and safety invariants:
+ * <ul>
+ *   <li><b>Upload Flow:</b> Validates subsystem and owner reference, verifies binary signatures via
+ *       {@link LocalDiskStorage}, stores physical file, and commits database metadata with compensation
+ *       on transaction rollback.</li>
+ *   <li><b>Download Flow:</b> Streams file content only if the file status is {@code ACTIVE}.</li>
+ *   <li><b>Logical Deletion:</b> Transitions file from {@code ACTIVE} to {@code DELETED} without deleting physical bytes immediately.</li>
+ *   <li><b>Two-Phase Physical Purge:</b> Transitions {@code DELETED} to {@code PURGE_PENDING}, physically removes
+ *       bytes from disk, and commits final {@code PURGED} status.</li>
+ *   <li><b>Audit Integration:</b> Synchronously records audit events for uploads, downloads, logical deletes, and purges.</li>
+ * </ul>
+ */
 @Service
 public class DmsFileService {
     private static final Logger log = LoggerFactory.getLogger(DmsFileService.class);

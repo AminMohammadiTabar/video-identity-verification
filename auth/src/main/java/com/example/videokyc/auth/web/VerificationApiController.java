@@ -17,6 +17,16 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
+/**
+ * REST controller for authenticated user video verification operations.
+ * <p>
+ * Security invariants:
+ * <ul>
+ *   <li>Requires authenticated session with {@code ROLE_USER}.</li>
+ *   <li>Video upload strictly requires valid CSRF tokens.</li>
+ *   <li>Returns immutable historical verification attempts.</li>
+ * </ul>
+ */
 @RestController
 @RequestMapping("/api/v1/auth/verifications")
 @SecurityRequirement(name = "sessionCookie")

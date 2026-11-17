@@ -37,8 +37,8 @@ class HttpAuditFilterTest {
             assertNotNull(response.getHeader("X-Request-ID"));
             assertNotEquals("bad\nheader", response.getHeader("X-Request-ID"));
             assertEquals(2, appender.list.size());
-            Map<String, Object> fields = appender.list.get(1).getKeyValuePairs().stream()
-                    .collect(Collectors.toMap(kv -> kv.key, kv -> kv.value));
+            Map<String, Object> fields = new java.util.HashMap<>();
+            appender.list.get(1).getKeyValuePairs().forEach(kv -> fields.put(kv.key, kv.value));
             assertEquals("http.request.completed", fields.get("event"));
             assertEquals("10.2.3.4", fields.get("clientIp"));
             assertEquals("anonymous", fields.get("actor"));
@@ -64,8 +64,8 @@ class HttpAuditFilterTest {
         appender.start(); logger.addAppender(appender);
         try {
             filter.doFilter(request, response, new MockFilterChain());
-            var fields = appender.list.get(1).getKeyValuePairs().stream()
-                    .collect(Collectors.toMap(kv -> kv.key, kv -> kv.value));
+            var fields = new java.util.HashMap<String, Object>();
+            appender.list.get(1).getKeyValuePairs().forEach(kv -> fields.put(kv.key, kv.value));
             assertEquals("203.0.113.8", fields.get("clientIp"));
             assertEquals("127.0.0.1", fields.get("remoteIp"));
         } finally { logger.detachAppender(appender); appender.stop(); }

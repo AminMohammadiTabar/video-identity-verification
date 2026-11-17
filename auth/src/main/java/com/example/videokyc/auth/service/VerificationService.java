@@ -16,6 +16,18 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Application service orchestrating end-to-end video verification workflows.
+ * <p>
+ * Responsibilities:
+ * <ul>
+ *   <li>Coordinates verification reservations with {@link VerificationStateService}.</li>
+ *   <li>Uploads video payloads securely to DMS via {@link DmsGateway} outside database transactions.</li>
+ *   <li>Handles compensation and logs orphaned files for operator reconciliation upon communication failure.</li>
+ *   <li>Provides views for user attempt history and administrative review queues.</li>
+ *   <li>Tracks operations with Micrometer {@link Observation} and W3C distributed tracing context.</li>
+ * </ul>
+ */
 @Service
 public class VerificationService {
     private static final Logger log = LoggerFactory.getLogger(VerificationService.class);

@@ -19,7 +19,16 @@ import java.net.URI;
 import java.util.Locale;
 import java.util.UUID;
 
-/** Dedicated service identity is injected only on the server; never sent to the browser. */
+/**
+ * Server-side HTTP gateway for communicating with DMS.
+ * <p>
+ * Invariants:
+ * <ul>
+ *   <li>The dedicated service identity (HTTP Basic credentials) is scoped to AUTH and never leaked to the browser.</li>
+ *   <li>Uses Spring Boot's auto-configured {@link RestClient.Builder} when available to ensure W3C trace context (traceparent) propagates to DMS.</li>
+ *   <li>Enforces HTTPS for any remote (non-loopback) DMS deployment to protect file payloads and credentials in transit.</li>
+ * </ul>
+ */
 @Component
 public class HttpDmsGateway implements DmsGateway {
     private static final int MAX_VIDEO_BYTES = 50 * 1024 * 1024;
@@ -27,7 +36,15 @@ public class HttpDmsGateway implements DmsGateway {
     private final String password;
     private final String username;
 
-    public HttpDmsGateway(RestClient.Builder builder,
+    /**
+     * Constructs the gateway with client timeout configurations and URL scheme validation.
+     *
+     * @param builder auto-configured or fallback RestClient.Builder
+     * @param baseUrl DMS base URL (must be HTTPS unless loopback)
+     * @param username scoped service username
+     * @param password scoped service password
+     */
+    public HttpDmsGateway(@org.springframework.beans.factory.annotation.Autowired(required = false) RestClient.Builder builder,
                           @Value("${auth.dms.base-url}") String baseUrl,
                           @Value("${auth.dms.username}") String username,
                           @Value("${auth.dms.password:}") String password) {
@@ -40,7 +57,8 @@ public class HttpDmsGateway implements DmsGateway {
         var requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(Duration.ofSeconds(5));
         requestFactory.setReadTimeout(Duration.ofSeconds(90));
-        this.client = builder.baseUrl(baseUrl).requestFactory(requestFactory).build();
+        RestClient.Builder clientBuilder = builder != null ? builder : RestClient.builder();
+        this.client = clientBuilder.baseUrl(baseUrl).requestFactory(requestFactory).build();
         this.username = username;
         this.password = password;
     }

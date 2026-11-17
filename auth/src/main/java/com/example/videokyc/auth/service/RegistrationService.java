@@ -18,6 +18,17 @@ import java.util.Locale;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
+/**
+ * Service managing user account self-registration with strong security constraints.
+ * <p>
+ * Key security and compliance guarantees:
+ * <ul>
+ *   <li>Only assigns {@code ROLE_USER}; self-registration cannot grant {@code ROLE_ADMIN}.</li>
+ *   <li>Normalizes emails (stripped, lowercase) and enforces uniqueness case-insensitively.</li>
+ *   <li>Enforces BCrypt UTF-8 password bounds (12 to 72 bytes) to avoid truncation vulnerabilities.</li>
+ *   <li>Persists audit events independently upon failure (e.g., input invalidity or duplicate accounts).</li>
+ * </ul>
+ */
 @Service
 public class RegistrationService {
     private static final Pattern EMAIL = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");

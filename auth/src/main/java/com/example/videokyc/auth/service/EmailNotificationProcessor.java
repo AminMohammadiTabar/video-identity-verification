@@ -13,6 +13,13 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+/**
+ * Scheduled processor for sending queued email notifications.
+ * <p>
+ * Operates only when explicitly enabled via {@code app.notifications.email.enabled=true}.
+ * Periodically polls the transactional outbox, claims due batches with lease locks,
+ * dispatches emails via SMTP using {@link JavaMailSender}, and updates outbox state with exponential backoff.
+ */
 @Component
 @ConditionalOnProperty(name = "app.notifications.email.enabled", havingValue = "true")
 public class EmailNotificationProcessor {

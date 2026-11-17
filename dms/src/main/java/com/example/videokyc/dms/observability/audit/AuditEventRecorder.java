@@ -12,6 +12,19 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Durable audit event recorder for the DMS service.
+ * <p>
+ * Manages transactional audit persistence with strict consistency semantics:
+ * <ul>
+ *   <li>{@link #record(AuditEventCommand)}: Joins the current business transaction using
+ *       {@code Propagation.REQUIRED} so file metadata changes and audit records commit atomically.</li>
+ *   <li>{@link #recordIndependent(AuditEventCommand)}: Executes in an isolated transaction using
+ *       {@code Propagation.REQUIRES_NEW} to ensure security rejections and storage failures
+ *       survive caller rollbacks.</li>
+ *   <li>Maintains local append-only persistence in the dedicated {@code dms.audit_events} schema.</li>
+ * </ul>
+ */
 @Service
 public class AuditEventRecorder {
     private static final Logger log = LoggerFactory.getLogger(AuditEventRecorder.class);
@@ -21,11 +34,11 @@ public class AuditEventRecorder {
     private final String serviceName;
 
     public AuditEventRecorder(AuditEventRepository repository, AuditContextProvider contextProvider,
-                              ObjectMapper objectMapper,
+                              @org.springframework.beans.factory.annotation.Autowired(required = false) ObjectMapper objectMapper,
                               @Value("${spring.application.name}") String serviceName) {
         this.repository = repository;
         this.contextProvider = contextProvider;
-        this.objectMapper = objectMapper;
+        this.objectMapper = objectMapper != null ? objectMapper : new ObjectMapper();
         this.serviceName = serviceName;
     }
 

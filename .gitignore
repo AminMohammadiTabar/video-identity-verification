@@ -18,7 +18,7 @@
 **/application-*.secret.yml
 
 # Storage and logs
-storage/
+/storage/
 logs/
 *.log
 

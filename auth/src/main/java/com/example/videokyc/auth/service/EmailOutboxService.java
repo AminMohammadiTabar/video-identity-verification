@@ -15,6 +15,16 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Manages the transactional email outbox for asynchronous notification delivery.
+ * <p>
+ * Ensures reliable message dispatch without external brokers (RabbitMQ/Kafka):
+ * <ul>
+ *   <li>Notification records are enqueued inside the same database transaction as the business event.</li>
+ *   <li>Workers claim batches using time-bounded leases to prevent double delivery.</li>
+ *   <li>Retries are scheduled with exponential backoff up to a configurable maximum attempt threshold.</li>
+ * </ul>
+ */
 @Service
 public class EmailOutboxService {
     private final EmailOutboxRepository repository;

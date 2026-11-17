@@ -33,6 +33,16 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
+/**
+ * REST controller exposing document and file management endpoints for DMS.
+ * <p>
+ * Security invariants:
+ * <ul>
+ *   <li>Requires HTTP Basic authentication with distinct {@code ADMIN} and {@code AUTH_SERVICE} scopes.</li>
+ *   <li>{@code AUTH_SERVICE} can only upload/download {@code AUTH} subsystem files owned by {@code USER}.</li>
+ *   <li>{@code ADMIN} role has full access including logical deletion and physical purge.</li>
+ * </ul>
+ */
 @RestController
 @RequestMapping("/api/v1/dms/files")
 @Tag(name = "DMS Files", description = "Secure file storage and lifecycle management")

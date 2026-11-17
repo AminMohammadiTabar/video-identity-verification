@@ -7,6 +7,8 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -37,6 +39,10 @@ class SwaggerWithoutLocalProfileIntegrationTest {
                 .andExpect(status().isUnauthorized());
         mvc.perform(get("/verification/upload"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrlPattern("**/login"));
+                .andExpect(result -> {
+                    String redirected = result.getResponse().getRedirectedUrl();
+                    assertNotNull(redirected);
+                    assertTrue(redirected.endsWith("/login"));
+                });
     }
 }
