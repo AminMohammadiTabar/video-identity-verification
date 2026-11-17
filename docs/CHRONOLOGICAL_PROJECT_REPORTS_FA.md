@@ -16,7 +16,7 @@
 ---
 
 ## ۱. مرحله دوم: PostgreSQL، Flyway و مدل‌های اولیه داده
-*مرجع اصلی: `docs/STEP_2_FA.md`*
+*مرجع اصلی: `docs/phase-2/STEP_2_FA.md`*
 
 ### ۱.۱. هدف و ساختار
 تکمیل لایه داده دو پروژه مستقل `auth` و `dms` با حفظ استقلال کامل سه پروژه در یک Workspace مشترک:
@@ -36,7 +36,7 @@
 ---
 
 ## ۲. مرحله سوم: لایه عملیاتی DMS، ذخیره‌سازی و پروفایل H2
-*مرجع اصلی: `docs/STEP_3_FA.md`*
+*مرجع اصلی: `docs/phase-3/STEP_3_FA.md`*
 
 ### ۲.۱. قابلیت‌های DMS
 - پیاده‌سازی آپلود فرم `multipart/form-data` شامل پارامترهای `subsystem`، `ownerType`، `ownerReference` و `file`.
@@ -56,7 +56,7 @@
 ---
 
 ## ۳. مرحله چهارم: ثبت‌نام، ورود سشن‌محور و Swagger UI در سه سرویس
-*مرجع اصلی: `docs/STEP_4_FA.md`*
+*مرجع اصلی: `docs/phase-4/STEP_4_FA.md`*
 
 ### ۳.۱. ماژول AUTH
 - ثبت‌نام با فرم HTML از طریق قالب‌های Mustache و محافظت سفت‌وسخت با توکن CSRF.
@@ -76,7 +76,7 @@
 ---
 
 ## ۴. بازبینی کیفی گام چهارم، اصلاح خطای ۴۰۱/۴۰۳، لاگینگ و اسکیل‌ها
-*مراجع اصلی: `docs/QUALITY_REVIEW_FA.md`, `docs/AUTH_401_403_FIX_FA.md`, `docs/LOGGING_AND_SWAGGER_FA.md`, `docs/REVIEW_CHANGELOG.md`, `docs/SKILLS_USAGE_FA.md`*
+*مراجع اصلی: `docs/phase-4/QUALITY_REVIEW_FA.md`, `docs/phase-4/AUTH_401_403_FIX_FA.md`, `docs/phase-4/LOGGING_AND_SWAGGER_FA.md`, `docs/phase-4/REVIEW_CHANGELOG.md`, `docs/phase-4/SKILLS_USAGE_FA.md`*
 
 ### ۴.۱. سازماندهی اسکیل‌های توسعه‌دهنده (Claude Code & Antigravity)
 - آرشیو کردن ۲۴ اسکیل اصلی و فعال‌سازی ۲۰ اسکیل عمومی به صورت مشترک در هر دو دایرکتوری `.claude/skills/` و `.agents/skills/`.
@@ -97,7 +97,7 @@
 ---
 
 ## ۵. مرحله پنجم: یکپارچه‌سازی AUTH و DMS و بررسی ادمین
-*مرجع اصلی: `docs/STEP_5_VERIFICATION_FA.md`*
+*مرجع اصلی: `docs/phase-5/STEP_5_VERIFICATION_FA.md`*
 
 ### ۵.۱. معماری ارتباط سرور-به-سرور
 - کلاینت مرورگر ویدئو را مستقیماً به DMS ارسال نمی‌کند؛ ویدئو همراه با توکن CSRF به سرور AUTH ارسال شده و AUTH از طریق `HttpDmsGateway` و کلاینت HTTP داخلی آن را به DMS منتقل می‌کند.
@@ -125,7 +125,7 @@
 ---
 
 ## ۶. مرحله ششم: طراحی و پیاده‌سازی ممیزی تراکنشی، Tracing و Attemptها
-*مراجع اصلی: `docs/STEP6_AUDIT_TRACING_TECHNICAL_DESIGN_FA.md`, `docs/STEP_6_IMPLEMENTATION_FA.md`*
+*مراجع اصلی: `docs/phase-6/STEP6_AUDIT_TRACING_TECHNICAL_DESIGN_FA.md`, `docs/phase-6/STEP_6_IMPLEMENTATION_FA.md`*
 
 ### ۶.۱. مدل احراز هویت تلاش‌محور (Attempt-based)
 - تبدیل احراز هویت به نگهداری تاریخچه کامل: در صورت رد شدن درخواست (`REJECTED`)، کاربر مجاز به ارسال ویدئوی جدید است که به عنوان تلاش شماره بعدی (`attempt_number + 1`) ثبت می‌شود و سوابق قبلی دست‌نخورده باقی می‌مانند.

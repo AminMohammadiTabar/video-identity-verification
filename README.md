@@ -248,8 +248,11 @@ python scripts/verify_workspace.py
 
 ## ۸. تاریخچه مستندات و گزارش‌های فنی
 
-تمامی گزارش‌های تاریخی فازهای پروژه، بررسی‌های کیفی و تغییرات معماری در پوشه `docs/` نگهداری می‌شوند:
+تمامی گزارش‌های تاریخی فازهای پروژه، بررسی‌های کیفی و تغییرات معماری در پوشه `docs/` بر اساس فازها دسته‌بندی شده‌اند:
 - 📑 [گزارش جامع و گاه‌شمار پروژه (از گام ۲ تا گام ۶)](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/docs/CHRONOLOGICAL_PROJECT_REPORTS_FA.md)
-- 📐 [طراحی فنی سیستم ممیزی تراکنشی و Tracing](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/docs/STEP6_AUDIT_TRACING_TECHNICAL_DESIGN_FA.md)
-- 🛠️ [راهنمای پیاده‌سازی و بازبینی گام ششم](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/docs/STEP_6_IMPLEMENTATION_FA.md)
-- 🛡️ [راهنمای استفاده از اسکیل‌های توسعه](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/docs/SKILLS_USAGE_FA.md)
+- 📁 **فاز ۲ (داده و Flyway اولیه):** [مستندات گام دوم](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/docs/phase-2/STEP_2_FA.md)
+- 📁 **فاز ۳ (ذخیره‌سازی و پروفایل H2 در DMS):** [مستندات گام سوم](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/docs/phase-3/STEP_3_FA.md)
+- 📁 **فاز ۴ (احراز هویت سشن‌محور، Swagger و اسکیل‌ها):** [مستندات گام چهارم](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/docs/phase-4/STEP_4_FA.md) | [راهنمای اسکیل‌ها](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/docs/phase-4/SKILLS_USAGE_FA.md) | [بازبینی کیفی](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/docs/phase-4/QUALITY_REVIEW_FA.md)
+- 📁 **فاز ۵ (یکپارچه‌سازی AUTH با DMS و بازبینی ادمین):** [مستندات گام پنجم](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/docs/phase-5/STEP_5_VERIFICATION_FA.md)
+- 📁 **فاز ۶ (سیستم ممیزی تراکنشی، Tracing و Attemptها):** [طراحی فنی ممیزی](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/docs/phase-6/STEP6_AUDIT_TRACING_TECHNICAL_DESIGN_FA.md) | [راهنمای پیاده‌سازی و بازبینی گام ششم](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/docs/phase-6/STEP_6_IMPLEMENTATION_FA.md)
+
