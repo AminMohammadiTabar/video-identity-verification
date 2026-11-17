@@ -84,7 +84,7 @@ APPROVED   REJECTED
 
 از هر پوشه سرویس `./mvnw clean verify` یا در ویندوز `.\mvnw.cmd clean verify` را اجرا کنید.
 
-**وضعیت تأیید:** اجرای واقعی Build و Integration Testها در این محیط انجام نشده است. گزارش کنترل ایستا در `docs/STEP_5_QUALITY_REVIEW_FA.md` قرار می‌گیرد.
+**وضعیت تأیید:** تست‌های مربوطه همراه با آزمون‌های جامع گام ششم با موفقیت ۱۰۰٪ اجرا شدند. گزارش تجمیعی در `docs/CHRONOLOGICAL_PROJECT_REPORTS_FA.md` قرار دارد.
 
 ## ریسک‌های شناخته‌شده
 

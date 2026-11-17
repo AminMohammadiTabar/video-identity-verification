@@ -252,5 +252,4 @@ python scripts/verify_workspace.py
 - 📑 [گزارش جامع و گاه‌شمار پروژه (از گام ۲ تا گام ۶)](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/docs/CHRONOLOGICAL_PROJECT_REPORTS_FA.md)
 - 📐 [طراحی فنی سیستم ممیزی تراکنشی و Tracing](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/docs/STEP6_AUDIT_TRACING_TECHNICAL_DESIGN_FA.md)
 - 🛠️ [راهنمای پیاده‌سازی و بازبینی گام ششم](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/docs/STEP_6_IMPLEMENTATION_FA.md)
-- 📊 [گزارش کنترل کیفی گام ششم](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/docs/STEP_6_QUALITY_REVIEW_FA.md)
 - 🛡️ [راهنمای استفاده از اسکیل‌های توسعه](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/docs/SKILLS_USAGE_FA.md)

@@ -9,6 +9,12 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * REST controller providing readiness and health information for the WORKFLOW service.
+ * <p>
+ * In phase one, reports {@code NOT_IMPLEMENTED} for the state machine engine
+ * while maintaining an independent HTTP endpoint and audit persistence layer.
+ */
 @RestController
 @RequestMapping("/api/v1/workflow")
 @Tag(name = "Workflow Lifecycle", description = "Scaffold state; engine is not implemented")

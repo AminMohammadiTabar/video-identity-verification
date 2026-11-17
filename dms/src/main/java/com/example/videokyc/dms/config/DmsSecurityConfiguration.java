@@ -20,6 +20,15 @@ import com.example.videokyc.dms.observability.audit.AuditEventCommand;
 import com.example.videokyc.dms.observability.audit.AuditEventRecorder;
 import com.example.videokyc.dms.observability.audit.DmsAuditActorProvider;
 
+/**
+ * Security configuration for the DMS file management service.
+ * <p>
+ * Enforces stateless HTTP Basic authentication with separate administrative and service credentials:
+ * <ul>
+ *   <li>{@code ROLE_ADMIN}: Full management access including logical deletion and physical purge.</li>
+ *   <li>{@code ROLE_AUTH_SERVICE}: Scoped access restricted to upload/download of user verification files.</li>
+ * </ul>
+ */
 @Configuration(proxyBeanMethods = false)
 public class DmsSecurityConfiguration {
     private final AuditEventRecorder audit;

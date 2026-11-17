@@ -15,6 +15,18 @@ import com.example.videokyc.auth.observability.AuthActionAudit;
 import com.example.videokyc.auth.observability.audit.AuditEventCommand;
 import com.example.videokyc.auth.observability.audit.AuditEventRecorder;
 
+/**
+ * Spring Security configuration for the AUTH service.
+ * <p>
+ * Configures two distinct filter chains:
+ * <ul>
+ *   <li><b>REST API Filter Chain (Order 1):</b> Manages {@code /api/v1/auth/**} with CSRF validation,
+ *       stateless entry point (401 for anonymous access denial), and custom access denied handlers.</li>
+ *   <li><b>Web MVC Filter Chain (Order 2):</b> Manages session-backed Mustache UI routes ({@code /login},
+ *       {@code /register}, {@code /verification/**}, {@code /admin/**}) with standard form login and logout.</li>
+ * </ul>
+ * Also captures security denial events independently via {@link AuditEventRecorder}.
+ */
 @Configuration(proxyBeanMethods = false)
 public class AuthSecurityConfiguration {
     private final AuditEventRecorder audit;

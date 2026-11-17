@@ -97,7 +97,7 @@
 ---
 
 ## ۵. مرحله پنجم: یکپارچه‌سازی AUTH و DMS و بررسی ادمین
-*مراجع اصلی: `docs/STEP_5_VERIFICATION_FA.md`, `docs/STEP_5_QUALITY_REVIEW_FA.md`*
+*مرجع اصلی: `docs/STEP_5_VERIFICATION_FA.md`*
 
 ### ۵.۱. معماری ارتباط سرور-به-سرور
 - کلاینت مرورگر ویدئو را مستقیماً به DMS ارسال نمی‌کند؛ ویدئو همراه با توکن CSRF به سرور AUTH ارسال شده و AUTH از طریق `HttpDmsGateway` و کلاینت HTTP داخلی آن را به DMS منتقل می‌کند.
@@ -125,7 +125,7 @@
 ---
 
 ## ۶. مرحله ششم: طراحی و پیاده‌سازی ممیزی تراکنشی، Tracing و Attemptها
-*مراجع اصلی: `docs/STEP6_AUDIT_TRACING_TECHNICAL_DESIGN_FA.md`, `docs/STEP_6_IMPLEMENTATION_FA.md`, `docs/STEP_6_QUALITY_REVIEW_FA.md`*
+*مراجع اصلی: `docs/STEP6_AUDIT_TRACING_TECHNICAL_DESIGN_FA.md`, `docs/STEP_6_IMPLEMENTATION_FA.md`*
 
 ### ۶.۱. مدل احراز هویت تلاش‌محور (Attempt-based)
 - تبدیل احراز هویت به نگهداری تاریخچه کامل: در صورت رد شدن درخواست (`REJECTED`)، کاربر مجاز به ارسال ویدئوی جدید است که به عنوان تلاش شماره بعدی (`attempt_number + 1`) ثبت می‌شود و سوابق قبلی دست‌نخورده باقی می‌مانند.
