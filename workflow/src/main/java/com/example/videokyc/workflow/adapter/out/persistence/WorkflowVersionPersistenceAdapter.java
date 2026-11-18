@@ -45,6 +45,21 @@ public class WorkflowVersionPersistenceAdapter implements WorkflowVersionPort {
         version.setId(versionId);
 
         // 2. Synchronize states
+        // 2. Delete removed transitions FIRST to prevent Foreign Key violations against states
+        List<WorkflowTransitionEntity> existingTransitions = transitionRepository.findByVersionIdOrderByDisplayOrderAsc(versionId);
+        Set<String> activeTransitionKeys = new HashSet<>();
+        for (WorkflowTransition transition : version.getTransitions().values()) {
+            activeTransitionKeys.add(transition.getTransitionKey().value());
+        }
+
+        for (WorkflowTransitionEntity existing : existingTransitions) {
+            if (!activeTransitionKeys.contains(existing.getTransitionKey())) {
+                transitionRepository.delete(existing);
+            }
+        }
+        transitionRepository.flush();
+
+        // 3. Synchronize states (upsert active states, then delete removed states)
         List<WorkflowStateEntity> existingStates = stateRepository.findByVersionIdOrderByDisplayOrderAsc(versionId);
         Map<String, WorkflowStateEntity> existingStateMap = new HashMap<>();
         for (WorkflowStateEntity s : existingStates) {
@@ -71,24 +86,25 @@ public class WorkflowVersionPersistenceAdapter implements WorkflowVersionPort {
             state.setVersionId(versionId);
             stateIdMap.put(state.getStateKey(), savedState.getId());
         }
+        stateRepository.flush();
 
-        // Delete states that were removed
+        // Delete states that were removed (safe now because referencing transitions were deleted first)
         for (WorkflowStateEntity existing : existingStates) {
             if (!activeStateKeys.contains(existing.getStateKey())) {
                 stateRepository.delete(existing);
             }
         }
+        stateRepository.flush();
 
-        // 3. Synchronize transitions
-        List<WorkflowTransitionEntity> existingTransitions = transitionRepository.findByVersionIdOrderByDisplayOrderAsc(versionId);
+        // 4. Synchronize active transitions
         Map<String, WorkflowTransitionEntity> existingTransitionMap = new HashMap<>();
         for (WorkflowTransitionEntity t : existingTransitions) {
-            existingTransitionMap.put(t.getTransitionKey(), t);
+            if (activeTransitionKeys.contains(t.getTransitionKey())) {
+                existingTransitionMap.put(t.getTransitionKey(), t);
+            }
         }
 
-        Set<String> activeTransitionKeys = new HashSet<>();
         for (WorkflowTransition transition : version.getTransitions().values()) {
-            activeTransitionKeys.add(transition.getTransitionKey().value());
             Long fromStateId = stateIdMap.get(transition.getFromStateKey());
             Long toStateId = stateIdMap.get(transition.getToStateKey());
 
@@ -114,13 +130,7 @@ public class WorkflowVersionPersistenceAdapter implements WorkflowVersionPort {
             transition.setFromStateId(fromStateId);
             transition.setToStateId(toStateId);
         }
-
-        // Delete transitions that were removed
-        for (WorkflowTransitionEntity existing : existingTransitions) {
-            if (!activeTransitionKeys.contains(existing.getTransitionKey())) {
-                transitionRepository.delete(existing);
-            }
-        }
+        transitionRepository.flush();
 
         // 4. Return reconstituted aggregate
         List<WorkflowStateEntity> finalStates = stateRepository.findByVersionIdOrderByDisplayOrderAsc(versionId);

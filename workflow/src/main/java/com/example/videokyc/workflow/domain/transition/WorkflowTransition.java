@@ -74,6 +74,26 @@ public class WorkflowTransition {
         this.displayOrder = validateDisplayOrder(displayOrder);
     }
 
+    /**
+     * Creates a defensive copy of this transition entity to preserve Aggregate Root encapsulation.
+     */
+    public WorkflowTransition copy() {
+        return new WorkflowTransition(
+                this.id,
+                this.versionId,
+                this.transitionKey,
+                this.name,
+                this.description,
+                this.fromStateId,
+                this.toStateId,
+                this.fromStateKey,
+                this.toStateKey,
+                this.guardExpression,
+                this.guardSchemaVersion,
+                this.displayOrder
+        );
+    }
+
     private static String validateName(String name) {
         if (name == null || name.isBlank()) {
             throw new DomainException("INVALID_TRANSITION_NAME", "Transition name must not be blank");

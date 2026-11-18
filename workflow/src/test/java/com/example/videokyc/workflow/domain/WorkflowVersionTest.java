@@ -162,4 +162,97 @@ class WorkflowVersionTest {
         version.retryPublication();
         assertThat(version.getStatus()).isEqualTo(WorkflowVersionStatus.PUBLISH_PENDING);
     }
+
+    @Test
+    @DisplayName("Should prevent external mutation of states and transitions via defensive copies")
+    void shouldPreventExternalMutationOfStatesAndTransitionsViaDefensiveCopies() {
+        WorkflowVersion version = WorkflowVersion.createDraft(1L, VersionNumber.of(1), validSchema, "admin", now);
+        WorkflowState init = WorkflowState.create(StateKey.of("INIT"), "Initial State", null, StateType.INITIAL, 0, null);
+        WorkflowState done = WorkflowState.create(StateKey.of("DONE"), "Done State", null, StateType.FINAL, 1, null);
+        version.addState(init);
+        version.addState(done);
+
+        WorkflowTransition transition = WorkflowTransition.create(
+                TransitionKey.of("FINISH"), "Finish Flow", null,
+                init.getStateKey(), done.getStateKey(), null, 0
+        );
+        version.addTransition(transition);
+
+        // Mutating a state returned by getStateOrThrow must not mutate the internal aggregate state
+        WorkflowState externalState = version.getStateOrThrow(StateKey.of("INIT"));
+        externalState.update("Hacked Name", "Hacked Description", StateType.INTERMEDIATE, 99, "{}");
+        assertThat(version.getStateOrThrow(StateKey.of("INIT")).getName()).isEqualTo("Initial State");
+        assertThat(version.getStateOrThrow(StateKey.of("INIT")).getStateType()).isEqualTo(StateType.INITIAL);
+
+        // Mutating a state obtained from getStates() must not mutate the internal aggregate state
+        WorkflowState stateFromMap = version.getStates().get(StateKey.of("DONE"));
+        stateFromMap.update("Changed in Map", null, StateType.INTERMEDIATE, 50, null);
+        assertThat(version.getStateOrThrow(StateKey.of("DONE")).getName()).isEqualTo("Done State");
+        assertThat(version.getStateOrThrow(StateKey.of("DONE")).getStateType()).isEqualTo(StateType.FINAL);
+
+        // Mutating a transition returned by getTransitionOrThrow must not mutate the internal aggregate state
+        WorkflowTransition externalTransition = version.getTransitionOrThrow(TransitionKey.of("FINISH"));
+        externalTransition.update("Mutated Transition", "Desc", init.getStateKey(), done.getStateKey(), null, 10);
+        assertThat(version.getTransitionOrThrow(TransitionKey.of("FINISH")).getName()).isEqualTo("Finish Flow");
+        assertThat(version.getTransitionOrThrow(TransitionKey.of("FINISH")).getDisplayOrder()).isEqualTo(0);
+
+        // Mutating a transition obtained from getTransitions() must not mutate the internal aggregate state
+        WorkflowTransition transitionFromMap = version.getTransitions().get(TransitionKey.of("FINISH"));
+        transitionFromMap.update("Changed via Map", null, init.getStateKey(), done.getStateKey(), null, 25);
+        assertThat(version.getTransitionOrThrow(TransitionKey.of("FINISH")).getName()).isEqualTo("Finish Flow");
+    }
+
+    @Test
+    @DisplayName("Should produce identical canonical snapshot and checksum regardless of JSON formatting and insertion order")
+    void shouldProduceIdenticalCanonicalSnapshotAndChecksumRegardlessOfFormattingAndOrdering() {
+        ContextSchema formattedSchema1 = ContextSchema.of("{\n  \"type\": \"object\",\n  \"properties\": {\n    \"applicant\": {\"type\": \"string\"}\n  }\n}");
+        ContextSchema formattedSchema2 = ContextSchema.of("{\"properties\":{\"applicant\":{\"type\":\"string\"}},\"type\":\"object\"}");
+
+        String guardJson1 = "{\n  \"operator\": \"EQ\",\n  \"path\": \"applicant.status\",\n  \"value\": \"VERIFIED\"\n}";
+        String guardJson2 = "{\"value\":\"VERIFIED\",\"path\":\"applicant.status\",\"operator\":\"EQ\"}";
+
+        // Version 1: Add S_B then S_A with displayOrder 0 (different insertion order, tie-breaking on key)
+        WorkflowVersion v1 = WorkflowVersion.createDraft(1L, VersionNumber.of(1), formattedSchema1, "admin", now);
+        v1.addState(WorkflowState.create(StateKey.of("INIT"), "Init", null, StateType.INITIAL, 0, null));
+        v1.addState(WorkflowState.create(StateKey.of("S_B"), "State B", null, StateType.INTERMEDIATE, 1, "{\n  \"step\": 2\n}"));
+        v1.addState(WorkflowState.create(StateKey.of("S_A"), "State A", null, StateType.INTERMEDIATE, 1, "{\"step\":2}"));
+        v1.addState(WorkflowState.create(StateKey.of("DONE"), "Done", null, StateType.FINAL, 2, null));
+
+        v1.addTransition(WorkflowTransition.create(
+                TransitionKey.of("T_B"), "TB", null, StateKey.of("INIT"), StateKey.of("S_B"),
+                com.example.videokyc.workflow.domain.transition.guard.GuardExpression.of(guardJson1), 0
+        ));
+        v1.addTransition(WorkflowTransition.create(
+                TransitionKey.of("T_A"), "TA", null, StateKey.of("INIT"), StateKey.of("S_A"),
+                com.example.videokyc.workflow.domain.transition.guard.GuardExpression.of(guardJson2), 0
+        ));
+        v1.addTransition(WorkflowTransition.create(
+                TransitionKey.of("T_END"), "TE", null, StateKey.of("S_A"), StateKey.of("DONE"), null, 1
+        ));
+
+        // Version 2: Add S_A then S_B with reverse insertion order, alternative JSON formatting
+        WorkflowVersion v2 = WorkflowVersion.createDraft(1L, VersionNumber.of(1), formattedSchema2, "admin", now);
+        v2.addState(WorkflowState.create(StateKey.of("DONE"), "Done", null, StateType.FINAL, 2, null));
+        v2.addState(WorkflowState.create(StateKey.of("S_A"), "State A", null, StateType.INTERMEDIATE, 1, "{\n  \"step\": 2\n}"));
+        v2.addState(WorkflowState.create(StateKey.of("S_B"), "State B", null, StateType.INTERMEDIATE, 1, "{\"step\": 2}"));
+        v2.addState(WorkflowState.create(StateKey.of("INIT"), "Init", null, StateType.INITIAL, 0, null));
+
+        v2.addTransition(WorkflowTransition.create(
+                TransitionKey.of("T_END"), "TE", null, StateKey.of("S_A"), StateKey.of("DONE"), null, 1
+        ));
+        v2.addTransition(WorkflowTransition.create(
+                TransitionKey.of("T_A"), "TA", null, StateKey.of("INIT"), StateKey.of("S_A"),
+                com.example.videokyc.workflow.domain.transition.guard.GuardExpression.of(guardJson1), 0
+        ));
+        v2.addTransition(WorkflowTransition.create(
+                TransitionKey.of("T_B"), "TB", null, StateKey.of("INIT"), StateKey.of("S_B"),
+                com.example.videokyc.workflow.domain.transition.guard.GuardExpression.of(guardJson2), 0
+        ));
+
+        v1.requestPublication(WorkflowKey.of("TEST_CANONICAL"));
+        v2.requestPublication(WorkflowKey.of("TEST_CANONICAL"));
+
+        assertThat(v1.getSnapshotJson()).isEqualTo(v2.getSnapshotJson());
+        assertThat(v1.getChecksum()).isEqualTo(v2.getChecksum());
+    }
 }

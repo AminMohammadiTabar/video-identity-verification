@@ -136,20 +136,22 @@ class WorkflowPublicationRequestServiceTest {
         assertThat(draftVersion.getChecksum()).isNotNull();
         assertThat(draftVersion.getChecksum().value()).hasSize(64);
 
+        assertThat(definition.getPendingVersionId()).isEqualTo(20L);
+        verify(definitionPort).save(definition);
         verify(versionPort).save(draftVersion);
         verify(publicationJobPort).save(any(PublicationJob.class));
     }
 
     @Test
-    @DisplayName("Should reject publication request if definition is archived")
-    void shouldRejectPublicationIfDefinitionArchived() {
-        definition.archive("admin", fixedInstant);
+    @DisplayName("Should reject publication request if definition is not active")
+    void shouldRejectPublicationIfDefinitionNotActive() {
+        definition.disable("admin", fixedInstant);
         when(versionPort.findById(20L)).thenReturn(Optional.of(draftVersion));
         when(definitionPort.findById(10L)).thenReturn(Optional.of(definition));
 
         assertThatThrownBy(() -> service.requestPublication(RequestPublicationCommand.of(20L)))
                 .isInstanceOf(DomainException.class)
-                .hasMessageContaining("Cannot publish version for archived workflow definition");
+                .hasMessageContaining("Cannot publish version for non-active workflow definition");
     }
 
     @Test
@@ -199,6 +201,7 @@ class WorkflowPublicationRequestServiceTest {
         draftVersion.markPublicationFailed();
 
         when(versionPort.findById(20L)).thenReturn(Optional.of(draftVersion));
+        when(definitionPort.findById(10L)).thenReturn(Optional.of(definition));
         when(publicationJobPort.findByVersionId(20L)).thenReturn(Optional.of(failedJob));
         when(publicationJobPort.save(any(PublicationJob.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -206,6 +209,7 @@ class WorkflowPublicationRequestServiceTest {
 
         assertThat(retried.getStatus()).isEqualTo(PublicationJobStatus.PENDING);
         assertThat(draftVersion.getStatus()).isEqualTo(WorkflowVersionStatus.PUBLISH_PENDING);
+        verify(definitionPort).save(definition);
     }
 
     @Test

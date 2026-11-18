@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.List;
 import java.util.Optional;
 
@@ -136,9 +137,9 @@ public class WorkflowPublicationRequestService implements
                 .orElseThrow(() -> new DomainException("DEFINITION_NOT_FOUND",
                         "Workflow definition not found with ID: " + version.getDefinitionId()));
 
-        if (definition.getStatus() == WorkflowDefinitionStatus.ARCHIVED) {
-            throw new DomainException("DEFINITION_ARCHIVED",
-                    "Cannot publish version for archived workflow definition: " + definition.getId());
+        if (definition.getStatus() != WorkflowDefinitionStatus.ACTIVE) {
+            throw new DomainException("DEFINITION_NOT_ACTIVE",
+                    "Cannot publish version for non-active workflow definition: " + definition.getId());
         }
 
         Instant now = clock.instant();
@@ -168,6 +169,10 @@ public class WorkflowPublicationRequestService implements
         version.requestPublication(definition.getWorkflowKey());
         versionPort.save(version);
 
+        // Record pending version ID and ensure definition is ACTIVE
+        definition.setPendingVersion(version.getId(), version.getCreatedBy(), now);
+        definitionPort.save(definition);
+
         PublicationJob job = PublicationJob.create(version.getId(), command.maxAttempts(), now);
         return publicationJobPort.save(job);
     }
@@ -192,9 +197,22 @@ public class WorkflowPublicationRequestService implements
                     "Can only retry a FAILED publication job, current status: " + job.getStatus());
         }
 
+        WorkflowDefinition definition = definitionPort.findById(version.getDefinitionId())
+                .orElseThrow(() -> new DomainException("DEFINITION_NOT_FOUND",
+                        "Workflow definition not found with ID: " + version.getDefinitionId()));
+
+        if (definition.getStatus() != WorkflowDefinitionStatus.ACTIVE) {
+            throw new DomainException("DEFINITION_NOT_ACTIVE", "Cannot publish versions for an inactive definition");
+        }
+
         if (version.getStatus() == WorkflowVersionStatus.PUBLICATION_FAILED) {
             version.retryPublication();
             versionPort.save(version);
+        }
+
+        if (!Objects.equals(definition.getPendingVersionId(), version.getId())) {
+            definition.setPendingVersion(version.getId(), version.getCreatedBy(), now);
+            definitionPort.save(definition);
         }
 
         job.manualRetry(now);

@@ -52,6 +52,22 @@ public class WorkflowState {
         this.uiMetadata = uiMetadata;
     }
 
+    /**
+     * Creates a defensive copy of this state entity to preserve Aggregate Root encapsulation.
+     */
+    public WorkflowState copy() {
+        return new WorkflowState(
+                this.id,
+                this.versionId,
+                this.stateKey,
+                this.name,
+                this.description,
+                this.stateType,
+                this.displayOrder,
+                this.uiMetadata
+        );
+    }
+
     private static String validateName(String name) {
         if (name == null || name.isBlank()) {
             throw new DomainException("INVALID_STATE_NAME", "State name must not be blank");

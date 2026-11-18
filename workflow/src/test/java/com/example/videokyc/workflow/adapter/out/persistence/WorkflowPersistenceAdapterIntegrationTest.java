@@ -206,4 +206,65 @@ class WorkflowPersistenceAdapterIntegrationTest {
         assertThat(byVersionId).isPresent();
         assertThat(byVersionId.get().getId()).isEqualTo(saved.getId());
     }
+
+    @Test
+    @DisplayName("Should safely delete transition and state simultaneously without foreign key violation")
+    void shouldSafelyDeleteTransitionAndStateSimultaneouslyWithoutForeignKeyViolation() {
+        Instant now = Instant.now();
+        WorkflowDefinition def = definitionPort.save(
+                WorkflowDefinition.create(WorkflowKey.of("FK_DELETE_DEF"), "FK Flow", "Desc", "admin", now)
+        );
+
+        WorkflowVersion draft = WorkflowVersion.createDraft(
+                def.getId(),
+                VersionNumber.of(1),
+                ContextSchema.defaultSchema(),
+                "admin",
+                now
+        );
+
+        WorkflowState init = WorkflowState.create(StateKey.of("INIT"), "Init", null, StateType.INITIAL, 0, "{}");
+        WorkflowState review = WorkflowState.create(StateKey.of("REVIEW"), "Review", null, StateType.INTERMEDIATE, 1, "{}");
+        WorkflowState done = WorkflowState.create(StateKey.of("DONE"), "Done", null, StateType.FINAL, 2, "{}");
+        draft.addState(init);
+        draft.addState(review);
+        draft.addState(done);
+
+        draft.addTransition(WorkflowTransition.create(
+                TransitionKey.of("T_INIT_REVIEW"), "Init to Review", null,
+                StateKey.of("INIT"), StateKey.of("REVIEW"), null, 0
+        ));
+        draft.addTransition(WorkflowTransition.create(
+                TransitionKey.of("T_REVIEW_DONE"), "Review to Done", null,
+                StateKey.of("REVIEW"), StateKey.of("DONE"), null, 1
+        ));
+
+        // Initial save with all 3 states and 2 transitions
+        WorkflowVersion saved = versionPort.save(draft);
+        assertThat(saved.getStates()).hasSize(3);
+        assertThat(saved.getTransitions()).hasSize(2);
+
+        // Mutate graph: remove the intermediate transitions AND the intermediate state
+        saved.removeTransition(TransitionKey.of("T_INIT_REVIEW"));
+        saved.removeTransition(TransitionKey.of("T_REVIEW_DONE"));
+        saved.removeState(StateKey.of("REVIEW"));
+
+        // Connect directly INIT -> DONE
+        saved.addTransition(WorkflowTransition.create(
+                TransitionKey.of("T_INIT_DONE"), "Init to Done", null,
+                StateKey.of("INIT"), StateKey.of("DONE"), null, 0
+        ));
+
+        // Saving must succeed without FK violation when deleting REVIEW state
+        WorkflowVersion updated = versionPort.save(saved);
+        assertThat(updated.getStates()).hasSize(2);
+        assertThat(updated.getTransitions()).hasSize(1);
+        assertThat(updated.getStates().containsKey(StateKey.of("REVIEW"))).isFalse();
+        assertThat(updated.getTransitions().containsKey(TransitionKey.of("T_INIT_DONE"))).isTrue();
+
+        WorkflowVersion reloaded = versionPort.findById(saved.getId()).orElseThrow();
+        assertThat(reloaded.getStates()).hasSize(2);
+        assertThat(reloaded.getTransitions()).hasSize(1);
+        assertThat(reloaded.getStates().containsKey(StateKey.of("REVIEW"))).isFalse();
+    }
 }

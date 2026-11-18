@@ -131,13 +131,13 @@ public class WorkflowVersion {
     public void updateState(StateKey key, String name, String description, StateType stateType,
                             int displayOrder, String uiMetadata) {
         ensureDraft("update state");
-        WorkflowState state = getStateOrThrow(key);
+        WorkflowState state = getInternalStateOrThrow(key);
         state.update(name, description, stateType, displayOrder, uiMetadata);
     }
 
     public void removeState(StateKey key) {
         ensureDraft("remove state");
-        getStateOrThrow(key);
+        getInternalStateOrThrow(key);
         for (WorkflowTransition transition : transitions.values()) {
             if (Objects.equals(transition.getFromStateKey(), key) || Objects.equals(transition.getToStateKey(), key)) {
                 throw new DomainException("CANNOT_REMOVE_STATE_REFERENCED_BY_TRANSITION",
@@ -155,8 +155,8 @@ public class WorkflowVersion {
                     "Transition key already exists in this version: " + transition.getTransitionKey());
         }
 
-        WorkflowState fromState = getStateOrThrow(transition.getFromStateKey());
-        getStateOrThrow(transition.getToStateKey());
+        WorkflowState fromState = getInternalStateOrThrow(transition.getFromStateKey());
+        getInternalStateOrThrow(transition.getToStateKey());
 
         if (fromState.getStateType() == StateType.FINAL) {
             throw new DomainException("TRANSITION_FROM_FINAL_STATE",
@@ -172,9 +172,9 @@ public class WorkflowVersion {
                                  com.example.videokyc.workflow.domain.transition.guard.GuardExpression guard,
                                  int displayOrder) {
         ensureDraft("update transition");
-        WorkflowTransition transition = getTransitionOrThrow(key);
-        WorkflowState fromState = getStateOrThrow(fromStateKey);
-        getStateOrThrow(toStateKey);
+        WorkflowTransition transition = getInternalTransitionOrThrow(key);
+        WorkflowState fromState = getInternalStateOrThrow(fromStateKey);
+        getInternalStateOrThrow(toStateKey);
 
         if (fromState.getStateType() == StateType.FINAL) {
             throw new DomainException("TRANSITION_FROM_FINAL_STATE",
@@ -186,7 +186,7 @@ public class WorkflowVersion {
 
     public void removeTransition(TransitionKey key) {
         ensureDraft("remove transition");
-        getTransitionOrThrow(key);
+        getInternalTransitionOrThrow(key);
         transitions.remove(key);
     }
 
@@ -223,39 +223,58 @@ public class WorkflowVersion {
 
     public WorkflowSnapshot buildSnapshot(WorkflowKey workflowKey) {
         List<WorkflowSnapshot.StateSnapshot> stateSnapshots = states.values().stream()
-                .sorted(Comparator.comparingInt(WorkflowState::getDisplayOrder))
+                .sorted(Comparator.comparingInt(WorkflowState::getDisplayOrder)
+                        .thenComparing(s -> s.getStateKey().value()))
                 .map(s -> new WorkflowSnapshot.StateSnapshot(
                         s.getStateKey().value(),
                         s.getName(),
                         s.getDescription(),
                         s.getStateType().name(),
                         s.getDisplayOrder(),
-                        s.getUiMetadata()
+                        canonicalizeIfJson(s.getUiMetadata())
                 ))
                 .toList();
 
         List<WorkflowSnapshot.TransitionSnapshot> transitionSnapshots = transitions.values().stream()
-                .sorted(Comparator.comparingInt(WorkflowTransition::getDisplayOrder))
+                .sorted(Comparator.comparingInt(WorkflowTransition::getDisplayOrder)
+                        .thenComparing(t -> t.getTransitionKey().value()))
                 .map(t -> new WorkflowSnapshot.TransitionSnapshot(
                         t.getTransitionKey().value(),
                         t.getName(),
                         t.getDescription(),
                         t.getFromStateKey().value(),
                         t.getToStateKey().value(),
-                        t.getGuardExpression() != null ? t.getGuardExpression().rawJson() : null,
+                        t.getGuardExpression() != null
+                                ? com.example.videokyc.workflow.domain.shared.CanonicalJsonSerializer.canonicalizeJsonString(t.getGuardExpression().rawJson())
+                                : null,
                         t.getGuardSchemaVersion(),
                         t.getDisplayOrder()
                 ))
                 .toList();
 
+        String canonicalContextSchema = this.contextSchema != null && this.contextSchema.schemaJson() != null
+                ? com.example.videokyc.workflow.domain.shared.CanonicalJsonSerializer.canonicalizeJsonString(this.contextSchema.schemaJson())
+                : "";
+
         return new WorkflowSnapshot(
                 this.snapshotSchemaVersion,
                 workflowKey.value(),
                 this.versionNumber.value(),
-                this.contextSchema.schemaJson(),
+                canonicalContextSchema,
                 stateSnapshots,
                 transitionSnapshots
         );
+    }
+
+    private static String canonicalizeIfJson(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return raw;
+        }
+        try {
+            return com.example.videokyc.workflow.domain.shared.CanonicalJsonSerializer.canonicalizeJsonString(raw);
+        } catch (Exception e) {
+            return raw;
+        }
     }
 
     public void requestPublication(WorkflowKey workflowKey) {
@@ -303,7 +322,7 @@ public class WorkflowVersion {
         }
     }
 
-    public WorkflowState getStateOrThrow(StateKey key) {
+    private WorkflowState getInternalStateOrThrow(StateKey key) {
         WorkflowState state = states.get(key);
         if (state == null) {
             throw new DomainException("STATE_NOT_FOUND", "State not found: " + key);
@@ -311,12 +330,26 @@ public class WorkflowVersion {
         return state;
     }
 
-    public WorkflowTransition getTransitionOrThrow(TransitionKey key) {
+    private WorkflowTransition getInternalTransitionOrThrow(TransitionKey key) {
         WorkflowTransition transition = transitions.get(key);
         if (transition == null) {
             throw new DomainException("TRANSITION_NOT_FOUND", "Transition not found: " + key);
         }
         return transition;
+    }
+
+    /**
+     * Returns a defensive copy of the requested state to preserve Aggregate encapsulation.
+     */
+    public WorkflowState getStateOrThrow(StateKey key) {
+        return getInternalStateOrThrow(key).copy();
+    }
+
+    /**
+     * Returns a defensive copy of the requested transition to preserve Aggregate encapsulation.
+     */
+    public WorkflowTransition getTransitionOrThrow(TransitionKey key) {
+        return getInternalTransitionOrThrow(key).copy();
     }
 
     private static String validateUser(String user, String field) {
@@ -344,6 +377,20 @@ public class WorkflowVersion {
     public String getCreatedBy() { return createdBy; }
     public Instant getPublishedAt() { return publishedAt; }
     public long getRowVersion() { return rowVersion; }
-    public Map<StateKey, WorkflowState> getStates() { return Collections.unmodifiableMap(states); }
-    public Map<TransitionKey, WorkflowTransition> getTransitions() { return Collections.unmodifiableMap(transitions); }
+
+    public Map<StateKey, WorkflowState> getStates() {
+        Map<StateKey, WorkflowState> copy = new LinkedHashMap<>();
+        for (Map.Entry<StateKey, WorkflowState> entry : states.entrySet()) {
+            copy.put(entry.getKey(), entry.getValue().copy());
+        }
+        return Collections.unmodifiableMap(copy);
+    }
+
+    public Map<TransitionKey, WorkflowTransition> getTransitions() {
+        Map<TransitionKey, WorkflowTransition> copy = new LinkedHashMap<>();
+        for (Map.Entry<TransitionKey, WorkflowTransition> entry : transitions.entrySet()) {
+            copy.put(entry.getKey(), entry.getValue().copy());
+        }
+        return Collections.unmodifiableMap(copy);
+    }
 }
