@@ -63,16 +63,19 @@ class WorkflowPostgresMigrationIntegrationTest {
     @Test
     @DisplayName("PostgreSQL: Should verify upgrade path from existing V1 schema to V4 on real PostgreSQL")
     void shouldVerifyPostgresUpgradePathFromV1ToV4() {
-        // Use a dedicated database/schema inside the PostgreSQL container for upgrade testing
-        String jdbcUrl = postgres.getJdbcUrl();
         String user = postgres.getUsername();
         String pass = postgres.getPassword();
 
-        // Step 1: Migrate only V1 in a separate schema "workflow_upgrade_test"
+        // Create a dedicated database inside the PostgreSQL container for upgrade testing
+        // so V1's explicit schema 'workflow' does not collide with the main test database
+        jdbc.execute("CREATE DATABASE workflow_upgrade_db");
+        String upgradeDbUrl = postgres.getJdbcUrl().replace("/video_identity_db", "/workflow_upgrade_db");
+
+        // Step 1: Migrate only V1 in the fresh database
         Flyway flywayV1 = Flyway.configure()
-                .dataSource(jdbcUrl, user, pass)
-                .schemas("workflow_upgrade_test")
-                .defaultSchema("workflow_upgrade_test")
+                .dataSource(upgradeDbUrl, user, pass)
+                .schemas("workflow")
+                .defaultSchema("workflow")
                 .createSchemas(true)
                 .locations("classpath:db/migration")
                 .target("1")
@@ -81,11 +84,11 @@ class WorkflowPostgresMigrationIntegrationTest {
 
         assertThat(flywayV1.info().current().getVersion().getVersion()).isEqualTo("1");
 
-        // Step 2: Upgrade existing V1 schema to latest (V4)
+        // Step 2: Upgrade existing V1 database to latest (V4)
         Flyway flywayLatest = Flyway.configure()
-                .dataSource(jdbcUrl, user, pass)
-                .schemas("workflow_upgrade_test")
-                .defaultSchema("workflow_upgrade_test")
+                .dataSource(upgradeDbUrl, user, pass)
+                .schemas("workflow")
+                .defaultSchema("workflow")
                 .locations("classpath:db/migration")
                 .load();
         flywayLatest.migrate();
@@ -143,15 +146,15 @@ class WorkflowPostgresMigrationIntegrationTest {
     }
 
     @Test
-    @DisplayName("PostgreSQL: Should enforce ck_wv_checksum_hex (64 hex characters) on published versions")
-    void shouldEnforcePostgresChecksumHexCheckConstraint() {
+    @DisplayName("PostgreSQL: Should enforce ck_workflow_versions_checksum_length (exactly 64 characters) on published versions")
+    void shouldEnforcePostgresChecksumLengthCheckConstraint() {
         jdbc.update("INSERT INTO workflow.workflow_definitions (id, workflow_key, name, status, created_by, updated_by) " +
                 "VALUES (220, 'FLOW_PG_HEX', 'Name', 'ACTIVE', 'admin', 'admin')");
 
-        // Checksum with invalid character 'Z' (not hex)
+        // Checksum with invalid length (16 chars instead of 64)
         assertThatThrownBy(() -> jdbc.update(
                 "INSERT INTO workflow.workflow_versions (id, definition_id, version_number, status, snapshot_json, checksum, published_at, context_schema_json, created_by) " +
-                        "VALUES (2201, 220, 1, 'PUBLISHED', '{\"test\":true}', 'ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ', CURRENT_TIMESTAMP, '{}', 'admin')"
+                        "VALUES (2201, 220, 1, 'PUBLISHED', '{\"test\":true}', '0123456789abcdef', CURRENT_TIMESTAMP, '{}', 'admin')"
         )).isInstanceOf(DataIntegrityViolationException.class);
     }
 
@@ -198,28 +201,28 @@ class WorkflowPostgresMigrationIntegrationTest {
     }
 
     @Test
-    @DisplayName("PostgreSQL: Should enforce chk_wpj_lease_pair worker lease consistency check on publication jobs")
+    @DisplayName("PostgreSQL: Should enforce ck_workflow_publication_jobs_lease worker lease consistency check on publication jobs")
     void shouldEnforcePostgresWorkerLeasePairConstraint() {
         jdbc.update("INSERT INTO workflow.workflow_definitions (id, workflow_key, name, status, created_by, updated_by) " +
                 "VALUES (250, 'FLOW_PG_WPJ', 'Name', 'ACTIVE', 'admin', 'admin')");
         jdbc.update("INSERT INTO workflow.workflow_versions (id, definition_id, version_number, status, context_schema_json, created_by) " +
                 "VALUES (2501, 250, 1, 'PUBLISH_PENDING', '{}', 'admin')");
 
-        // Insert job with worker_id set but lease_expires_at NULL (violates chk_wpj_lease_pair)
+        // Insert job with status 'PROCESSING' but locked_by NULL (violates ck_workflow_publication_jobs_lease)
         assertThatThrownBy(() -> jdbc.update(
-                "INSERT INTO workflow.workflow_publication_jobs (definition_id, target_version_id, status, worker_id, lease_expires_at) " +
-                        "VALUES (250, 2501, 'PROCESSING', 'worker-1', NULL)"
+                "INSERT INTO workflow.workflow_publication_jobs (version_id, status, locked_by, locked_until) " +
+                        "VALUES (2501, 'PROCESSING', NULL, CURRENT_TIMESTAMP)"
         )).isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
-    @DisplayName("PostgreSQL: Should enforce chk_woe_lease_pair publisher lease consistency check on outbox events")
+    @DisplayName("PostgreSQL: Should enforce ck_workflow_outbox_lease publisher lease consistency check on outbox events")
     void shouldEnforcePostgresOutboxLeasePairConstraint() {
         UUID eventId = UUID.randomUUID();
-        // Insert outbox event with locked_by set but lease_expires_at NULL (violates chk_woe_lease_pair)
+        // Insert outbox event with status 'PROCESSING' but locked_until NULL (violates ck_workflow_outbox_lease)
         assertThatThrownBy(() -> jdbc.update(
-                "INSERT INTO workflow.workflow_outbox_events (event_id, aggregate_type, aggregate_id, event_type, payload_json, status, locked_by, lease_expires_at) " +
-                        "VALUES (?, 'WorkflowVersion', 2501, 'WORKFLOW_PUBLISHED', '{}', 'PROCESSING', 'publisher-1', NULL)",
+                "INSERT INTO workflow.workflow_outbox_events (event_id, aggregate_type, aggregate_id, event_type, event_version, routing_key, payload_json, status, locked_by, locked_until) " +
+                        "VALUES (?, 'WorkflowVersion', 2501, 'WORKFLOW_PUBLISHED', 1, 'workflow.event', '{}', 'PROCESSING', 'publisher-1', NULL)",
                 eventId
         )).isInstanceOf(DataIntegrityViolationException.class);
     }

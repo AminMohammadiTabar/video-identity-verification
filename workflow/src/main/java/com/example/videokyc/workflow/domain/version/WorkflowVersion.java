@@ -80,6 +80,38 @@ public class WorkflowVersion {
         );
     }
 
+    public static WorkflowVersion reconstitute(Long id,
+                                               Long definitionId,
+                                               VersionNumber versionNumber,
+                                               WorkflowVersionStatus status,
+                                               ContextSchema contextSchema,
+                                               String snapshotJson,
+                                               SnapshotChecksum checksum,
+                                               int snapshotSchemaVersion,
+                                               Instant createdAt,
+                                               String createdBy,
+                                               Instant publishedAt,
+                                               long rowVersion,
+                                               Collection<WorkflowState> states,
+                                               Collection<WorkflowTransition> transitions) {
+        WorkflowVersion version = new WorkflowVersion(
+                id, definitionId, versionNumber, status, contextSchema,
+                snapshotJson, checksum, snapshotSchemaVersion,
+                createdAt, createdBy, publishedAt, rowVersion
+        );
+        if (states != null) {
+            for (WorkflowState state : states) {
+                version.states.put(state.getStateKey(), state);
+            }
+        }
+        if (transitions != null) {
+            for (WorkflowTransition transition : transitions) {
+                version.transitions.put(transition.getTransitionKey(), transition);
+            }
+        }
+        return version;
+    }
+
     public void updateContextSchema(ContextSchema schema) {
         ensureDraft("update context schema");
         this.contextSchema = Objects.requireNonNull(schema, "contextSchema must not be null");

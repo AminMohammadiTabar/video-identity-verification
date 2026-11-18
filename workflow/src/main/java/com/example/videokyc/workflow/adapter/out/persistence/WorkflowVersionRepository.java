@@ -11,6 +11,8 @@ public interface WorkflowVersionRepository extends JpaRepository<WorkflowVersion
 
     Optional<WorkflowVersionEntity> findByDefinitionIdAndVersionNumber(Long definitionId, int versionNumber);
 
+    Optional<WorkflowVersionEntity> findFirstByDefinitionIdOrderByVersionNumberDesc(Long definitionId);
+
     List<WorkflowVersionEntity> findByDefinitionIdOrderByVersionNumberDesc(Long definitionId);
 
     List<WorkflowVersionEntity> findByDefinitionIdAndStatus(Long definitionId, String status);
