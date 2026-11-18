@@ -10,12 +10,42 @@
 .classpath
 .project
 
-# Environment secrets and local overrides
+# Environment secrets, credentials, and local overrides
 .env
 .env.*
+*.env
 !.env.example
-**/application-local-private.yml
+**/application-local*.yml
+**/application-local*.properties
 **/application-*.secret.yml
+**/application-*.secret.properties
+**/application-private*.yml
+**/application-private*.properties
+**/secrets/
+**/.secrets/
+*credentials*
+*secret*.json
+service-account*.json
+jwt-*.key
+*.token
+*.secret
+
+# Private keys, certificates, and keystores
+*.key
+*.pem
+*.pkcs12
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.truststore
+*.crt
+*.cer
+*.der
+id_rsa*
+id_ed25519*
+id_ecdsa*
+id_dsa*
 
 # Storage and logs
 /storage/
