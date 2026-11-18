@@ -42,6 +42,18 @@ public record ContextSchema(String schemaJson) {
         return new ContextSchema(schemaJson);
     }
 
+    public void validateSelf() {
+        com.example.videokyc.workflow.domain.version.schema.ContextSchemaValidator.validateSchema(this);
+    }
+
+    public com.example.videokyc.workflow.domain.version.schema.ContextValidationReport validate(JsonNode contextData) {
+        return com.example.videokyc.workflow.domain.version.schema.ContextSchemaValidator.validateContext(this, contextData);
+    }
+
+    public com.example.videokyc.workflow.domain.version.schema.ContextValidationReport validate(String contextJson) {
+        return com.example.videokyc.workflow.domain.version.schema.ContextSchemaValidator.validateContext(this, contextJson);
+    }
+
     @Override
     public String toString() {
         return schemaJson;

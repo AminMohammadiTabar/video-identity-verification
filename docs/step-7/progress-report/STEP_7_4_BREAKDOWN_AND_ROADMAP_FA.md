@@ -103,7 +103,7 @@ flowchart TD
   - شیء ارزش `GuardEvaluationResult`:
     - `boolean matched`: آیا شرط برقرار شد؟
     - `String reason`: توضیح علت و نام گره‌ای که مانع انتقال شد.
-    - `GuardEvaluationError error`: کد خطای تشخیصی امن (مانند `NONE`, `PATH_NOT_FOUND`, `TYPE_MISMATCH`, `SCHEMA_VIOLATION`, `EVALUATION_ERROR`).
+    - `GuardEvaluationError error`: کد خطای تشخیصی امن (مانند `NONE`, `PATH_NOT_FOUND`, `TYPE_MISMATCH`, `SCHEMA_VIOLATION`, `MALFORMED_CONTEXT`, `EVALUATION_ERROR`).
     - `List<String> evaluatedPaths`: مسیرهایی که در تصمیم‌گیری مشارکت داشتند.
   - `WorkflowRuleEngine`:
     - رابط ورودی تمیز برای ارزیابی قوانین.
@@ -135,3 +135,16 @@ flowchart TD
 | امنیت گارد و اسکریپت | عدم استفاده از SpEL / JavaScript / SQL | فقط عملگرهای محدود و امن AST |
 | موفقیت آزمون‌های خودکار | اجرای `./mvnw test` با Java 25 | **۱۰۰٪ PASS (0 Failures)** |
 | سلامت ساختاری فضای کار | اجرای `python scripts/verify_workspace.py` | **PASS (99/99)** |
+
+---
+
+## ۵. وضعیت تحقق و کارنامه نهایی اقلام تحویل‌شده (Implementation Verification)
+
+| زیرگام | کلاس‌های پیاده‌سازی‌شده | کلاس آزمون واحد | نتیجه آزمون | وضعیت |
+| :--- | :--- | :--- | :---: | :---: |
+| **۷.۴.۱ (Schema & Context)** | [`ContextSchemaValidator`](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/workflow/src/main/java/com/example/videokyc/workflow/domain/version/schema/ContextSchemaValidator.java)<br>[`ContextValidationReport`](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/workflow/src/main/java/com/example/videokyc/workflow/domain/version/schema/ContextValidationReport.java)<br>[`ContextValidationError`](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/workflow/src/main/java/com/example/videokyc/workflow/domain/version/schema/ContextValidationError.java) | [`ContextSchemaValidatorTest`](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/workflow/src/test/java/com/example/videokyc/workflow/domain/version/schema/ContextSchemaValidatorTest.java) | ۱۱ تست موفق | **تکمیل ۱۰۰٪** |
+| **۷.۴.۲ (Guard vs Schema)** | [`GuardSchemaCompatibilityAnalyzer`](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/workflow/src/main/java/com/example/videokyc/workflow/domain/version/schema/GuardSchemaCompatibilityAnalyzer.java)<br>[`GuardCompatibilityReport`](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/workflow/src/main/java/com/example/videokyc/workflow/domain/version/schema/GuardCompatibilityReport.java) | [`GuardSchemaCompatibilityAnalyzerTest`](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/workflow/src/test/java/com/example/videokyc/workflow/domain/version/schema/GuardSchemaCompatibilityAnalyzerTest.java) | ۷ تست موفق | **تکمیل ۱۰۰٪** |
+| **۷.۴.۳ (Rule Engine)** | [`WorkflowRuleEngine`](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/workflow/src/main/java/com/example/videokyc/workflow/domain/transition/guard/WorkflowRuleEngine.java)<br>[`GuardEvaluationResult`](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/workflow/src/main/java/com/example/videokyc/workflow/domain/transition/guard/GuardEvaluationResult.java)<br>[`GuardEvaluationError`](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/workflow/src/main/java/com/example/videokyc/workflow/domain/transition/guard/GuardEvaluationError.java) | [`WorkflowRuleEngineTest`](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/workflow/src/test/java/com/example/videokyc/workflow/domain/transition/guard/WorkflowRuleEngineTest.java) | ۸ تست موفق | **تکمیل ۱۰۰٪** |
+| **۷.۴.۴ (Integration)** | ارتقای [`WorkflowPublicationRequestService`](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/workflow/src/main/java/com/example/videokyc/workflow/application/service/WorkflowPublicationRequestService.java) | [`WorkflowPublicationRequestServiceTest`](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/workflow/src/test/java/com/example/videokyc/workflow/application/service/WorkflowPublicationRequestServiceTest.java) | ۹ تست موفق | **تکمیل ۱۰۰٪** |
+
+> **شاخص کلی سرویس workflow:** ۱۲۳ تست از ۱۲۳ تست با موفقیت پاس شدند (۰ خطا و ۰ شکست) به همراه ۱۱ تست کانتینری Testcontainers PostgreSQL 17.

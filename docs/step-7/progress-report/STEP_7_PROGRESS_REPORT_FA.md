@@ -38,14 +38,22 @@ flowchart TD
         A3 --> A4["۷.۳.۴: اعتبارسنجی پیش‌نویس و ثبت درخواست انتشار (تکمیل)"]
     end
 
-    subgraph Step7_4_5["گام‌های بعدی موتور گردش کار"]
-        N1["گام ۷.۴: تکمیل اعتبارسنجی ایستا و شِما"]
-        N2["گام ۷.۵: پایپ‌لاین انتشار و یکپارچگی ردیس (Publication Worker & Redis)"]
+    subgraph Step7_4["گام ۷.۴: موتور قوانین و اعتبارسنجی گارد و شِما (تکمیل ۱۰۰٪)"]
+        G1["۷.۴.۱: اعتبارسنجی Schema و داده‌های Context"] --> G2["۷.۴.۲: تحلیل‌گر استاتیک سازگاری گارد و شِما"]
+        G2 --> G3["۷.۴.۳: خروجی ساختاریافته و موتور اجرای قوانین"]
+        G3 --> G4["۷.۴.۴: یکپارچه‌سازی با پایپ‌لاین اعتبارسنجی پیش‌نویس"]
+    end
+
+    subgraph Step7_5["گام ۷.۵: پایپ‌لاین انتشار و یکپارچگی ردیس (پیش‌رو)"]
+        P1["Worker وظایف انتشار و مدیریت Lease"]
+        P2["ثبت اسنپ‌شات در ردیس و فعال‌سازی اتمیک اشاره‌گر"]
+        P3["تراکنش Outbox رویدادها"]
     end
 
     Step7_1 --> Step7_2
     Step7_2 --> Step7_3
-    Step7_3 --> Step7_4_5
+    Step7_3 --> Step7_4
+    Step7_4 --> Step7_5
 ```
 
 ---
@@ -122,25 +130,48 @@ flowchart TD
   - آزمون‌های واحد جامع در [`WorkflowPublicationRequestServiceTest`](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/workflow/src/test/java/com/example/videokyc/workflow/application/service/WorkflowPublicationRequestServiceTest.java) (شامل اعتبارسنجی گراف، جلوگیری از تداخل موازی، و بازیابی وظایف شکست‌خورده).
   - آزمون‌های یکپارچگی روی پایگاه داده در [`WorkflowPublicationRequestServiceIntegrationTest`](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/workflow/src/test/java/com/example/videokyc/workflow/application/service/WorkflowPublicationRequestServiceIntegrationTest.java).
 
+### ۳.۴. گام ۷.۴: موتور قوانین و اعتبارسنجی گارد و شِما (تکمیل ۱۰۰٪)
+
+- **۷.۴.۱: اعتبارسنجی امن Schema و داده‌های Context:**
+  - پیاده‌سازی [`ContextSchemaValidator`](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/workflow/src/main/java/com/example/videokyc/workflow/domain/version/schema/ContextSchemaValidator.java) جهت اعتبارسنجی ساختاری شِما (JSON Schema Draft 2020-12) بدون دسترسی به شبکه و مسدودسازی کامل `$ref`های ریموت جهت ممانعت قطعی از آسیب‌پذیری SSRF.
+  - اعتبارسنجی داده‌های کانتکست مصرف‌کننده با تولید کارنامه خطاهای تشخیصی [`ContextValidationReport`](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/workflow/src/main/java/com/example/videokyc/workflow/domain/version/schema/ContextValidationReport.java) و [`ContextValidationError`](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/workflow/src/main/java/com/example/videokyc/workflow/domain/version/schema/ContextValidationError.java).
+  - متدهای `validateSelf()` و `validate(JsonNode)` در [`ContextSchema`](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/workflow/src/main/java/com/example/videokyc/workflow/domain/version/ContextSchema.java).
+  - تست‌های واحد جامع در [`ContextSchemaValidatorTest`](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/workflow/src/test/java/com/example/videokyc/workflow/domain/version/schema/ContextSchemaValidatorTest.java).
+
+- **۷.۴.۲: تحلیل‌گر استاتیک سازگاری گارد با شِما:**
+  - پیاده‌سازی [`GuardSchemaCompatibilityAnalyzer`](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/workflow/src/main/java/com/example/videokyc/workflow/domain/version/schema/GuardSchemaCompatibilityAnalyzer.java) جهت استخراج کلیه مسیرهای فیلدها از Guard AST، پیمایش سلسله‌مراتبی ویژگی‌های شِما و کنترل پرچم `additionalProperties`.
+  - اعتبارسنجی ماتریس نوع داده با عملگرها (جلوگیری از اعمال عملگرهای ترتیبی `GT`/`LT` روی نوع متنی یا بولین).
+  - تولید کارنامه انطباق [`GuardCompatibilityReport`](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/workflow/src/main/java/com/example/videokyc/workflow/domain/version/schema/GuardCompatibilityReport.java) و تست‌های واحد در [`GuardSchemaCompatibilityAnalyzerTest`](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/workflow/src/test/java/com/example/videokyc/workflow/domain/version/schema/GuardSchemaCompatibilityAnalyzerTest.java).
+
+- **۷.۴.۳: خروجی ساختاریافته و موتور اجرای قوانین:**
+  - طراحی شیء ارزش غنی [`GuardEvaluationResult`](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/workflow/src/main/java/com/example/videokyc/workflow/domain/transition/guard/GuardEvaluationResult.java) و کدهای خطای امن دامنه‌ای [`GuardEvaluationError`](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/workflow/src/main/java/com/example/videokyc/workflow/domain/transition/guard/GuardEvaluationError.java).
+  - پیاده‌سازی سرویس دامنه‌ای قطعی [`WorkflowRuleEngine`](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/workflow/src/main/java/com/example/videokyc/workflow/domain/transition/guard/WorkflowRuleEngine.java) جهت ارزیابی قوانین با ره‌گیری مسیرهای تصمیم‌گیری، ترجمه امن استثناها به `TYPE_MISMATCH` و گزارش دلیل عدم انطباق.
+  - تست‌های واحد جامع در [`WorkflowRuleEngineTest`](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/workflow/src/test/java/com/example/videokyc/workflow/domain/transition/guard/WorkflowRuleEngineTest.java).
+
+- **۷.۴.۴: یکپارچه‌سازی با پایپ‌لاین اعتبارسنجی پیش‌نویس:**
+  - ارتقای متد `validateDraft` در [`WorkflowPublicationRequestService`](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/workflow/src/main/java/com/example/videokyc/workflow/application/service/WorkflowPublicationRequestService.java) به نحوی که تمام گاردهای انتقال‌ها را با Context Schema تطبیق می‌دهد.
+  - ممانعت خودکار از ثبت درخواست انتشار (`requestPublication`) در صورتی که هرگونه عدم تطابق فیلد، شِما یا عملگر وجود داشته باشد.
+  - تست یکپارچگی ممانعت از انتشار در [`WorkflowPublicationRequestServiceTest`](file:///d:/Amin/My%20Java%20Projects/video-identity-verification/workflow/src/test/java/com/example/videokyc/workflow/application/service/WorkflowPublicationRequestServiceTest.java).
+
 ---
 
 ## ۴. نتایج آزمون‌ها و شاخص‌های کیفی
 
 | شاخص ارزیابی | ابزار راستی‌آزمایی | نتیجه | وضعیت |
 | :--- | :--- | :---: | :---: |
-| صحت نگارشی جاوا | `java scripts/JavaSyntaxCheck.java` | ۱۹۲ سورس کد | **PASS (0 Errors)** |
+| صحت نگارشی جاوا | `java scripts/JavaSyntaxCheck.java` | ۲۰۳ سورس کد | **PASS (0 Errors)** |
 | گیت کیفیت و یکپارچگی | `python scripts/verify_workspace.py` | ۹۹ بررسی معماری/امنیتی | **PASS (99/99)** |
 | نشت JPA در لایه دامین | تحلیل خودکار AST و استاتیک | ۰ انوتیشن فریم‌ورک | **PASS (Clean DDD)** |
-| آزمون‌های خودکار سرویس | `./mvnw test` با OpenJDK 25 | ۹۶ تست موفق | **BUILD SUCCESS** |
+| آزمون‌های خودکار سرویس | `./mvnw test` با OpenJDK 25 | ۱۲۳ تست موفق | **BUILD SUCCESS** |
 | آزمون‌های کانتینری واقعی | Testcontainers PostgreSQL 17 | ۱۱ تست کانتینری مایگریشن و قیود | **BUILD SUCCESS** |
 
 ---
 
 ## ۵. نقشه راه و اقدامات گام‌های بعدی
 
-پس از تکمیل ۱۰۰٪ گام‌های ۷.۱، ۷.۲ و ۷.۳، ادامه نقشه راه فاز ۷ به شرح زیر است:
-1. **گام ۷.۴ (Guard & Rule Engine Completion)**: تکمیل ارزیابی استاتیک مسیرهای گارد در برابر Context Schema.
-2. **گام ۷.۵ (Definition Publication & Redis Integration)**:
-   - پیاده‌سازی Worker انتشار پس‌زمینه با مدیریت Lease و قفل توزیع‌شده.
-   - ثبت اسنپ‌شات تغییرناپذیر در Redis و فعال‌سازی اتمیک اشاره‌گر نسخه فعال (`active version pointer`).
-   - ذخیره رویداد در `workflow_outbox_events` جهت انتشار به RabbitMQ.
+با تکمیل ۱۰۰٪ گام‌های ۷.۱، ۷.۲، ۷.۳ و ۷.۴، گام آماده برای پیاده‌سازی:
+- **گام ۷.۵ (Definition Publication & Redis Integration)**:
+  1. پیاده‌سازی Worker پردازش وظایف انتشار در پس‌زمینه با مکانیسم Lease و قفل موقت.
+  2. تولید و ثبت اسنپ‌شات تغییرناپذیر در Redis و فعال‌سازی اتمیک اشاره‌گر نسخه فعال (`active version pointer`).
+  3. ذخیره تراکنشی رویداد انتشار در جدول `workflow_outbox_events` جهت ارسال به RabbitMQ.
+  4. مدیریت بازیابی خطاها (Crash recovery & Expired lease recovery).

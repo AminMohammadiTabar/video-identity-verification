@@ -100,6 +100,27 @@ public class WorkflowPublicationRequestService implements
 
         if (version.getContextSchema() == null || version.getContextSchema().schemaJson() == null || version.getContextSchema().schemaJson().isBlank()) {
             errors.add("Workflow version must have a valid context schema");
+        } else {
+            try {
+                version.getContextSchema().validateSelf();
+            } catch (DomainException e) {
+                errors.add("Context schema is invalid: " + e.getMessage());
+            }
+
+            // Statically validate each transition's guard against the context schema
+            for (WorkflowTransition transition : version.getTransitions().values()) {
+                if (transition.getGuardExpression() != null) {
+                    com.example.videokyc.workflow.domain.version.schema.GuardCompatibilityReport compatReport =
+                            com.example.videokyc.workflow.domain.version.schema.GuardSchemaCompatibilityAnalyzer.analyze(
+                                    transition.getGuardExpression(), version.getContextSchema()
+                            );
+                    if (!compatReport.compatible()) {
+                        for (String issue : compatReport.issues()) {
+                            errors.add("Transition " + transition.getTransitionKey().value() + ": " + issue);
+                        }
+                    }
+                }
+            }
         }
 
         return errors.isEmpty() ? ValidationReport.success() : ValidationReport.failure(errors);
@@ -134,6 +155,13 @@ public class WorkflowPublicationRequestService implements
                 throw new DomainException("PUBLICATION_IN_PROGRESS",
                         "Publication job is already in progress with status: " + existingJob.getStatus());
             }
+        }
+
+        // Validate draft version structural and guard compatibility rules
+        ValidationReport validation = validateDraft(command.versionId());
+        if (!validation.valid()) {
+            throw new DomainException("INVALID_WORKFLOW_VERSION",
+                    "Cannot publish invalid workflow version: " + String.join(", ", validation.errors()));
         }
 
         // Validate, generate snapshot canonical JSON, calculate SHA-256 checksum, and update status to PUBLISH_PENDING

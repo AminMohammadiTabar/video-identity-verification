@@ -220,4 +220,47 @@ class WorkflowPublicationRequestServiceTest {
         assertThat(service.getById(200L)).contains(job);
         assertThat(service.getByVersionId(20L)).contains(job);
     }
+
+    @Test
+    @DisplayName("Should reject publication when transition Guard is incompatible with ContextSchema")
+    void shouldRejectPublicationWhenGuardIncompatibleWithSchema() {
+        ContextSchema strictSchema = ContextSchema.of("""
+                {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "applicant": {
+                      "type": "object",
+                      "properties": {
+                        "name": { "type": "string" }
+                      },
+                      "additionalProperties": false
+                    }
+                  },
+                  "additionalProperties": false
+                }
+                """);
+        WorkflowVersion v = WorkflowVersion.createDraft(10L, VersionNumber.of(1), strictSchema, "admin", fixedInstant);
+        v.setId(50L);
+        WorkflowState s1 = WorkflowState.create(StateKey.of("S1"), "S1", null, StateType.INITIAL, 0, null);
+        WorkflowState s2 = WorkflowState.create(StateKey.of("S2"), "S2", null, StateType.FINAL, 1, null);
+        v.addState(s1);
+        v.addState(s2);
+
+        // Numeric GT operator applied to string property 'applicant.name'
+        WorkflowTransition t = WorkflowTransition.create(
+                TransitionKey.of("T1"), "T1", null, s1.getStateKey(), s2.getStateKey(),
+                com.example.videokyc.workflow.domain.transition.guard.GuardExpression.of(
+                        "{\"operator\": \"GT\", \"path\": \"applicant.name\", \"value\": 100}"
+                ), 0
+        );
+        v.addTransition(t);
+
+        when(versionPort.findById(50L)).thenReturn(Optional.of(v));
+        when(definitionPort.findById(10L)).thenReturn(Optional.of(definition));
+
+        assertThatThrownBy(() -> service.requestPublication(RequestPublicationCommand.of(50L)))
+                .isInstanceOf(DomainException.class)
+                .hasMessageContaining("incompatible with schema type 'string'");
+    }
 }
