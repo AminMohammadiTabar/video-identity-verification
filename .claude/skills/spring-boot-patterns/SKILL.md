@@ -325,6 +325,64 @@ public record ErrorResponse(String code, String message) {}
 
 ---
 
+## Internationalization (i18n) Pattern
+
+Spring Boot applications should follow the i18n standard for all user-facing and API error responses.
+
+### 1. Resource Bundles (`src/main/resources/messages/`)
+Maintain UTF-8 properties files:
+- `messages.properties` (fallback defaults)
+- `messages_fa.properties` (Persian translations)
+- `messages_en.properties` (English translations)
+
+Example keys:
+```properties
+error.definition.not_found=تعریف گردش کار با شناسه {0} یافت نشد
+error.invalid_state_transition=انتقال از وضعیت {0} به وضعیت {1} مجاز نیست
+error.generic=خطای سیستمی رخ داده است
+```
+
+### 2. Configuration Bean (`WebI18nConfig.java`)
+```java
+@Configuration
+public class WebI18nConfig {
+
+    @Bean
+    public MessageSource messageSource() {
+        ReloadableResourceBundleMessageSource source = new ReloadableResourceBundleMessageSource();
+        source.setBasename("classpath:messages/messages");
+        source.setDefaultEncoding(StandardCharsets.UTF_8.name());
+        source.setUseCodeAsDefaultMessage(true);
+        return source;
+    }
+
+    @Bean
+    public LocaleResolver localeResolver() {
+        AcceptHeaderLocaleResolver resolver = new AcceptHeaderLocaleResolver();
+        resolver.setDefaultLocale(new Locale("fa"));
+        resolver.setSupportedLocales(List.of(new Locale("fa"), Locale.ENGLISH));
+        return resolver;
+    }
+}
+```
+
+### 3. Resolving in `@RestControllerAdvice`
+Domain and application layers stay language-neutral by emitting stable error codes (`String code` or `ErrorCode`). The presentation advice translates them dynamically using `Locale` (derived from `Accept-Language` header):
+```java
+@ExceptionHandler(BusinessException.class)
+public ResponseEntity<ErrorResponse> handleBusiness(BusinessException ex, Locale locale) {
+    String localized = messageSource.getMessage(
+        ex.getCode(),
+        null,
+        ex.getMessage(),
+        locale
+    );
+    return ResponseEntity.badRequest().body(new ErrorResponse(ex.getCode(), localized));
+}
+```
+
+---
+
 ## Configuration Patterns
 
 ### Application Properties

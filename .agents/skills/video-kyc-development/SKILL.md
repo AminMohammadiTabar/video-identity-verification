@@ -16,6 +16,20 @@ Read `AGENTS.md` / `CLAUDE.md` at the workspace root and the affected service `p
 - DMS owns files and metadata. Store under SUBSYSTEM/YYYY/MM/DD/OWNER_ID/UUID.extension; never use submitted paths.
 - PostgreSQL/Flyway are authoritative; H2 uses separate local migrations.
 
+## Hexagonal architecture & package organization
+- For services implementing Hexagonal / Ports-and-Adapters (such as `workflow`), package structure must remain strictly organized, clean, and faithful to DDD:
+  - `domain/`: Pure business logic without framework or JPA annotations.
+  - `application/`: Application use cases (`port/in`, `port/out`) and orchestrations (`service/`).
+  - `adapter/in/`: Driving adapters (e.g. `adapter/in/web/controller/`, `adapter/in/web/advice/`).
+  - `adapter/out/`: Driven adapters. In persistence adapters, partition entities (`entity/`), repositories (`repository/`), and mappers (`mapper/`) into dedicated subpackages rather than accumulating flat files.
+
+## Internationalization (i18n) standard
+- All services must follow the i18n standard for API error responses, validation messages, and user notifications:
+  - Domain and application layers must stay language-neutral, emitting stable, machine-readable `errorCode` identifiers (e.g. `INVALID_STATE_TRANSITION`, `DEFINITION_NOT_FOUND`).
+  - Localization is resolved at the Web/Presentation boundary using Spring's `MessageSource` and `AcceptHeaderLocaleResolver` (driven by the client `Accept-Language` header).
+  - Resource bundles (`messages.properties`, `messages_fa.properties`, `messages_en.properties`) must be maintained in UTF-8.
+  - Central `@RestControllerAdvice` and MVC controllers resolve localized messages from error codes dynamically before returning responses to the caller.
+
 ## Audit, tracing and privacy
 - Successful business Audit joins the local business transaction; failure/security Audit that must survive rollback uses `REQUIRES_NEW`.
 - Keep logs, Audit and Traces separate. Request ID != Trace ID != Span ID.

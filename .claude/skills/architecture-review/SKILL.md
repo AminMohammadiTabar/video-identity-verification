@@ -79,35 +79,47 @@ com.example.app/
 **Pros**: Related code together, easy to extract, clear boundaries
 **Cons**: May need shared kernel for cross-cutting concerns
 
-### Hexagonal/Clean Architecture
+### Hexagonal/Clean Architecture (Strictly Organized)
 
 ```
 com.example.app/
 ├── domain/                    # Pure business logic (no framework imports)
 │   ├── model/
 │   │   └── User.java
-│   ├── port/
-│   │   ├── in/               # Use cases (driven)
-│   │   │   └── CreateUserUseCase.java
-│   │   └── out/              # Repositories (driving)
-│   │       └── UserRepository.java
 │   └── service/
 │       └── UserDomainService.java
-├── application/               # Use case implementations
-│   └── CreateUserService.java
-├── adapter/
+├── application/               # Use cases & ports
+│   ├── port/
+│   │   ├── in/               # Driving use-case interfaces
+│   │   │   └── CreateUserUseCase.java
+│   │   └── out/              # Driven port interfaces
+│   │       └── UserRepositoryPort.java
+│   └── service/              # Use case orchestrators
+│       └── CreateUserService.java
+├── adapter/                   # Technology-specific implementations
 │   ├── in/
-│   │   └── web/
-│   │       └── UserController.java
+│   │   └── web/              # Driving adapters (REST, i18n exception advice)
+│   │       ├── controller/
+│   │       │   └── UserController.java
+│   │       └── advice/
+│   │           └── ApiExceptionHandler.java
 │   └── out/
-│       └── persistence/
-│           ├── UserJpaRepository.java
-│           └── UserEntity.java
+│       └── persistence/      # Driven adapters (organized subpackages, not flat)
+│           ├── entity/
+│           │   └── UserJpaEntity.java
+│           ├── repository/
+│           │   └── UserSpringDataRepository.java
+│           ├── mapper/
+│           │   └── UserPersistenceMapper.java
+│           └── UserPersistenceAdapter.java
 └── config/
     └── BeanConfiguration.java
 ```
 
-**Key rule**: Dependencies point inward (adapters → application → domain)
+**Key rules**:
+1. Dependencies point inward (adapters → application → domain).
+2. Packages must remain orderly and cleanly partitioned; do not accumulate dozens of flat files in `adapter/out/persistence` without subpackages.
+3. **i18n Boundary**: Domain emits language-neutral `errorCode`s; the Web Driving adapter (`advice/`, `controller/`) resolves the user's `Locale` (`Accept-Language`) and formats human-readable messages via `MessageSource`.
 
 ---
 
