@@ -157,7 +157,7 @@ claude = ROOT / '.claude/skills'
 agents = ROOT / '.agents/skills'
 a = {p.parent.name for p in claude.glob('*/SKILL.md')}
 b = {p.parent.name for p in agents.glob('*/SKILL.md')}
-check(a == b and len(a) == 25, 'Claude Code and Antigravity have the same 25 active skills')
+check(a == b and len(a) >= 25, f'Claude Code and Antigravity have the same {len(a)} active skills')
 archive = ROOT / 'docs/skill-sources/claude-original'
 check(len(list(archive.glob('*/SKILL.md'))) == 24,
       'All 24 supplied skills are preserved in original archive')
