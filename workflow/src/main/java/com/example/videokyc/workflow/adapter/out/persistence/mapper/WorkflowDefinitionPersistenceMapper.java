@@ -1,6 +1,6 @@
 package com.example.videokyc.workflow.adapter.out.persistence.mapper;
 
-import com.example.videokyc.workflow.adapter.out.persistence.WorkflowDefinitionEntity;
+import com.example.videokyc.workflow.adapter.out.persistence.entity.WorkflowDefinitionEntity;
 import com.example.videokyc.workflow.domain.definition.WorkflowDefinition;
 import com.example.videokyc.workflow.domain.definition.WorkflowDefinitionStatus;
 import com.example.videokyc.workflow.domain.definition.WorkflowKey;

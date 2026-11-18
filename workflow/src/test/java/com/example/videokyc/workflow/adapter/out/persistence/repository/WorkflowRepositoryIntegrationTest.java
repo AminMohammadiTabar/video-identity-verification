@@ -1,14 +1,14 @@
-package com.example.videokyc.workflow.persistence;
+package com.example.videokyc.workflow.adapter.out.persistence.repository;
 
-import com.example.videokyc.workflow.adapter.out.persistence.*;
+import com.example.videokyc.workflow.adapter.out.persistence.entity.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.DynamicPropertyRegistry;
 
 import java.time.Instant;
 import java.util.List;

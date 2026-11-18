@@ -1,4 +1,6 @@
-package com.example.videokyc.workflow.adapter.out.persistence;
+package com.example.videokyc.workflow.adapter.out.persistence.repository;
+
+import com.example.videokyc.workflow.adapter.out.persistence.entity.*;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;

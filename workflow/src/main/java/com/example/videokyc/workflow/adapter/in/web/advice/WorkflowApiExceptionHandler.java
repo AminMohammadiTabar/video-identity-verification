@@ -1,4 +1,4 @@
-package com.example.videokyc.workflow.api;
+package com.example.videokyc.workflow.adapter.in.web.advice;
 
 import com.example.videokyc.workflow.domain.shared.DomainException;
 import org.slf4j.Logger;

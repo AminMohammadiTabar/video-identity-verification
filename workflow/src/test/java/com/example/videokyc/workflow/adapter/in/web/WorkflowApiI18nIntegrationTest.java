@@ -1,4 +1,4 @@
-package com.example.videokyc.workflow.api;
+package com.example.videokyc.workflow.adapter.in.web;
 
 import com.example.videokyc.workflow.domain.shared.DomainException;
 import org.junit.jupiter.api.DisplayName;

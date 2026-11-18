@@ -1,5 +1,8 @@
 package com.example.videokyc.workflow.adapter.out.persistence;
 
+import com.example.videokyc.workflow.adapter.out.persistence.entity.*;
+import com.example.videokyc.workflow.adapter.out.persistence.repository.*;
+
 import com.example.videokyc.workflow.adapter.out.persistence.mapper.WorkflowVersionPersistenceMapper;
 import com.example.videokyc.workflow.application.port.out.WorkflowVersionPort;
 import com.example.videokyc.workflow.domain.state.StateKey;

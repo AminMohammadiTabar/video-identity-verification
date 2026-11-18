@@ -1,6 +1,6 @@
 package com.example.videokyc.workflow.adapter.out.persistence.mapper;
 
-import com.example.videokyc.workflow.adapter.out.persistence.PublicationJobEntity;
+import com.example.videokyc.workflow.adapter.out.persistence.entity.PublicationJobEntity;
 import com.example.videokyc.workflow.domain.publication.PublicationJob;
 import com.example.videokyc.workflow.domain.publication.PublicationJobStatus;
 import org.junit.jupiter.api.DisplayName;

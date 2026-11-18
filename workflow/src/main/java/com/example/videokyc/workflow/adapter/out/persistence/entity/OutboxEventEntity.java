@@ -1,4 +1,4 @@
-package com.example.videokyc.workflow.adapter.out.persistence;
+package com.example.videokyc.workflow.adapter.out.persistence.entity;
 
 import jakarta.persistence.*;
 import lombok.Getter;

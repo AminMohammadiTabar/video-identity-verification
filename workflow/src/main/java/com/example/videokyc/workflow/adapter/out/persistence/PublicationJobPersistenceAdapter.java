@@ -1,5 +1,8 @@
 package com.example.videokyc.workflow.adapter.out.persistence;
 
+import com.example.videokyc.workflow.adapter.out.persistence.entity.*;
+import com.example.videokyc.workflow.adapter.out.persistence.repository.*;
+
 import com.example.videokyc.workflow.adapter.out.persistence.mapper.PublicationJobPersistenceMapper;
 import com.example.videokyc.workflow.application.port.out.PublicationJobPort;
 import com.example.videokyc.workflow.domain.publication.PublicationJob;

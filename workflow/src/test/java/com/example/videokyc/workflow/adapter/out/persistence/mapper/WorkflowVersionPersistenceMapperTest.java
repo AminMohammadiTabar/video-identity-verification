@@ -1,8 +1,8 @@
 package com.example.videokyc.workflow.adapter.out.persistence.mapper;
 
-import com.example.videokyc.workflow.adapter.out.persistence.WorkflowStateEntity;
-import com.example.videokyc.workflow.adapter.out.persistence.WorkflowTransitionEntity;
-import com.example.videokyc.workflow.adapter.out.persistence.WorkflowVersionEntity;
+import com.example.videokyc.workflow.adapter.out.persistence.entity.WorkflowStateEntity;
+import com.example.videokyc.workflow.adapter.out.persistence.entity.WorkflowTransitionEntity;
+import com.example.videokyc.workflow.adapter.out.persistence.entity.WorkflowVersionEntity;
 import com.example.videokyc.workflow.domain.state.StateKey;
 import com.example.videokyc.workflow.domain.state.StateType;
 import com.example.videokyc.workflow.domain.state.WorkflowState;

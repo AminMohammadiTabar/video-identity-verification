@@ -1,10 +1,10 @@
-package com.example.videokyc.workflow.api;
+package com.example.videokyc.workflow.adapter.in.web.controller;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "Workflow Lifecycle", description = "Scaffold state; engine is not implemented")
 public class WorkflowInfoController {
     private static final Logger log = LoggerFactory.getLogger(WorkflowInfoController.class);
+
     @Operation(summary = "Describe workflow service readiness", description = "Reports NOT_IMPLEMENTED until a future phase")
     @ApiResponse(responseCode = "200", description = "Scaffold status")
     @GetMapping("/info")
