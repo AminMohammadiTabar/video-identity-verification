@@ -11,7 +11,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  */
 public record ContextSchema(String schemaJson) {
     public static final String DRAFT_2020_12_URI = "https://json-schema.org/draft/2020-12/schema";
+    public static final String DEFAULT_EMPTY_SCHEMA = """
+            {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object"
+            }
+            """;
     private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    public static ContextSchema defaultSchema() {
+        return new ContextSchema(DEFAULT_EMPTY_SCHEMA);
+    }
 
     public ContextSchema {
         if (schemaJson == null || schemaJson.isBlank()) {
